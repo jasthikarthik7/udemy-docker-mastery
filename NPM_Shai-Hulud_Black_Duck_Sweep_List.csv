@@ -1,0 +1,31 @@
+Package Name,Affected Versions,Namespace/Risk Group
+@ctrl/tinycolor,"4.1.1, 4.1.2",ctrl
+@ctrl/deluge,7.2.2,ctrl
+@ctrl/golang-template,1.4.3,ctrl
+@ctrl/magnet-link,4.0.4,ctrl
+@ctrl/ngx-codemirror,7.0.2,ctrl
+@ctrl/ngx-csv,6.0.2,ctrl
+@ctrl/ngx-emoji-mart,9.2.2,ctrl
+@ctrl/ngx-rightclick,4.0.2,ctrl
+@ctrl/qbittorrent,9.7.2,ctrl
+@ctrl/react-adsense,2.0.2,ctrl
+@ctrl/shared-torrent,6.3.2,ctrl
+@ctrl/torrent-file,4.1.2,ctrl
+@ctrl/transmission,7.3.1,ctrl
+@ctrl/ts-base32,4.0.2,ctrl
+@crowdstrike/commitlint,"8.1.1, 8.1.2",crowdstrike
+@crowdstrike/falcon-shoelace,"0.4.1, 0.4.2",crowdstrike
+@crowdstrike/foundry-js,"0.19.1, 0.19.2",crowdstrike
+@crowdstrike/glide-core,"0.34.2, 0.34.3",crowdstrike
+@crowdstrike/logscale-dashboard,"1.205.1, 1.205.2",crowdstrike
+@crowdstrike/logscale-file-editor,"1.205.1, 1.205.2",crowdstrike
+@crowdstrike/logscale-parser-edit,"1.205.1, 1.205.2",crowdstrike
+@crowdstrike/logscale-search,"1.205.1, 1.205.2",crowdstrike
+@crowdstrike/tailwind-toucan-base,"5.0.1, 5.0.2",crowdstrike
+@ahmedhfarag/ngx-perfect-scrollbar,*,ahmedhfarag
+@ahmedhfarag/ngx-virtual-scroller,*,ahmedhfarag
+@art-ws/common,*,art-ws
+@art-ws/config-eslint,*,art-ws
+@art-ws/config-ts,*,art-ws
+@art-ws/db-context,*,art-ws
+@art-ws/di,*,art-ws
