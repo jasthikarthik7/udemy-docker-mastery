@@ -24,3 +24,11 @@ Recently, we noticed that some new GitHub-related projects have shifted to a nam
 
 Recommendation:
 We recommend reverting to the previous naming convention (organization/projectName) to maintain consistency and avoid these issues. This will ensure that our automation scripts remain stable and that we continue to have a clear, readable naming scheme. If there are specific reasons for the change, we’d appreciate understanding them better so we can find a solution that meets everyone’s needs.
+
+
+Over the past year, I actively supported development teams by helping them quickly identify, validate, and address security vulnerabilities detected by Checkmarx and BlackDuck. I focused on improving the accuracy of findings, minimizing false positives, and ensuring that remediation efforts were prioritized effectively.
+
+I collaborated closely with developers to clarify issues, provide practical remediation guidance, and resolve questions promptly, which helped keep projects moving without security-related delays. I also stayed current with evolving security standards and best practices, strengthening my ability to offer valuable insights and recommendations for continuous improvement.
+
+Through these efforts, I contributed to reducing security risks in our applications and enhancing the overall maturity of our secure development practices.
+
