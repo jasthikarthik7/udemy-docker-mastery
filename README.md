@@ -1,28 +1,97 @@
-# Docker Mastery: The Complete Toolset From a Docker Captain
+🧾 Workflow Overview
 
-> Build, compose, deploy, and manage Docker containers from development to DevOps based Swarm clusters
+1️⃣ Trigger
+	•	A new high or critical finding is detected from Black Duck or Checkmarx pipelines.
+	•	The finding triggers the need for a policy exception (manual or automated ticket creation).
 
-This repo is for use in my Udemy Courses "Docker Mastery" and "Swarm Mastery"
+2️⃣ Request Submission (Application Team)
+	•	User fills a ServiceNow Exception Request Form with:
+	•	Application name
+	•	Business owner / contact info
+	•	Tool source (Black Duck / Checkmarx)
+	•	Finding details (e.g., CWE ID, component, severity, description)
+	•	Reason for exception (why remediation is not feasible)
+	•	Proposed mitigation or compensating controls
+	•	Proposed end date (based on severity)
+	•	Attachments (e.g., screenshots, scan report, email approvals)
 
-Coupons and Purchase Links and Sample Videos at https://www.bretfisher.com/docker
+3️⃣ SSG Review
+	•	ServiceNow automatically assigns the ticket (or creates an SCTASK) to the SSG queue.
+	•	SSG reviews:
+	•	Validates details & justification
+	•	Adds recommendations and/or compensating controls
+	•	Approves/rejects or routes to SG&R for final decision
+	•	Adds comments and recommendations in a structured field (e.g., “SSG Recommendation”)
 
-Docker Mastery Slack Chat Community for Docker, Swarm, Kubernetes, DevOps, and anything Containers:
+4️⃣ SG&R Final Approval
+	•	SG&R reviews SSG’s recommendations.
+	•	Either:
+	•	Approves the exception → sets approved until date (based on severity)
+	•	Rejects the request → sends back to application team with comments
 
-https://dockermasterychat.herokuapp.com/
+5️⃣ Expiry Tracking
+	•	Each exception must have an end date.
+	•	ServiceNow sends automated notifications:
+	•	15 days before expiry
+	•	On the day of expiry
+	•	Allows extension requests through a related “Extension Request” ticket or workflow.
 
-Feel free to create issues or PRs if you find a problem.
+6️⃣ Search & Reporting
+	•	Tickets should be searchable by:
+	•	Application name
+	•	Ticket number
+	•	Finding ID (e.g., Black Duck or Checkmarx ID)
+	•	Ability to filter by status (Pending SSG, Pending SG&R, Approved, Expired, etc.)
+	•	Exportable reports (optional) showing active and expired exceptions.
 
 
+Severity
+Maximum Exception Period
+Review Frequency
+Critical
+90 days
+Monthly
+High
+180 days
+Quarterly
 
-Background:
-Traditionally, our Black Duck project naming followed a clear pattern: organization/projectName, where the organization and project name were separated by a forward slash. This allowed us to easily distinguish the organization from the project and ensured consistency across all integrations, whether GitHub Cloud, GitHub On-Prem, or Azure ADO projects.
 
-Current Issue:
-Recently, we noticed that some new GitHub-related projects have shifted to a naming convention that replaces the forward slash with a dash. For example, instead of organization/projectName, we now see organization-projectName. While this might seem minor, it introduces two key challenges:
-	1.	Automation Complexity: Our existing automation scripts and tooling rely on the predictable naming pattern to parse organization and project names. Introducing dashes in place of slashes means we lose that clarity and might have to rework or update scripts, increasing maintenance overhead.
-	2.	Readability and Consistency: With two dashes in the name, it becomes harder to quickly distinguish the organization from the project at a glance. This can lead to confusion when navigating multiple projects and makes it less intuitive for teams to understand naming at a glance.
+Extension Workflow
+	•	Application team can request an extension before expiry.
+	•	New “Extension” ticket linked to the original exception ticket.
+	•	Must include:
+	•	Updated justification
+	•	Current remediation status
+	•	New proposed end date
+	•	Follows same approval workflow (SSG → SG&R).
 
-Recommendation:
-We recommend reverting to the previous naming convention (organization/projectName) to maintain consistency and avoid these issues. This will ensure that our automation scripts remain stable and that we continue to have a clear, readable naming scheme. If there are specific reasons for the change, we’d appreciate understanding them better so we can find a solution that meets everyone’s needs.
 
-I have successfully achieved all the success criteria for this goal. I completed the Microsoft Azure AI Fundamentals Certification (2025), building a strong foundation in AI security, secure model design, and data privacy. For the second objective, I explored and evaluated LLM-based code analysis tools using Cursor, assessing their accuracy and limitations in identifying secure versus insecure patterns. Additionally, I attended Black Hat 2025, which provided valuable exposure to the latest security practices, trends, and innovations in the AI space. These milestones have significantly strengthened my knowledge in AI development, AI-driven security solutions, and secure AI system design and usage.
+Technical Requirements (for Developer)
+	1.	Form Fields
+	•	Application Name (lookup)
+	•	Exception Type (Checkmarx / Black Duck)
+	•	Severity (Critical / High)
+	•	Finding ID
+	•	Description
+	•	Justification
+	•	Proposed End Date (auto-restricted based on severity)
+	•	Attachments
+	•	SSG Recommendation (field visible to SSG only)
+	•	SG&R Decision (dropdown: Approve / Reject)
+	•	Approved Until (date)
+	•	Current Status (Draft / Pending SSG / Pending SG&R / Approved / Rejected / Expired)
+	2.	Automation Rules
+	•	Auto-assign to SSG group upon submission.
+	•	Notify SG&R once SSG completes review.
+	•	Auto-close ticket after expiry (status = “Expired”).
+	•	Send email notifications to requestor & SSG at key milestones.
+	3.	Search & Reporting
+	•	Indexed by application, ticket number, and finding ID.
+	•	Dashboard for active, upcoming, and expired exceptions.
+
+Example Workflow
+	1.	Dev submits exception for AppX → Checkmarx → Critical finding.
+	2.	Ticket auto-assigned to SSG.
+	3.	SSG adds recommendation → moves to SG&R.
+	4.	SG&R approves for 90 days → end date auto-set.
+	5.	Notifications sent before expiry → extension request if needed.
