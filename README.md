@@ -95,3 +95,82 @@ Example Workflow
 	3.	SSG adds recommendation → moves to SG&R.
 	4.	SG&R approves for 90 days → end date auto-set.
 	5.	Notifications sent before expiry → extension request if needed.
+
+
+
+
+                 +-----------------------------------+
+                 |        Survey System              |
+                 |        (VOC Responses)            |
+                 +----------------+------------------+
+                                  |
+                                  v
+                        +----------------------+
+                        |   VOC Orchestrator   |
+                        +-----------+----------+
+                                    |
+            ----------------------------------------------------------------
+            |                      |                      |                |
+            v                      v                      v                v
++--------------------+   +---------------------+  +------------------+  +----------------------+
+| Two-Tier LLM       |   | 360° Context Agent  |  |   Action Agent   |  | Trend Analyzer Agent |
+| Cascade            |   | (Data Collector)    |  | (Prioritize &    |  |                      |
+| (Classification)   |   +----------+----------+  |   Execute)        |  |                      |
++---------+----------+              |             +---------+----------+  +----------+----------+
+          ^                         |                       |                        |
+          |                         |                       |                        |
+   (1) Classify comment            (2) Gather context       |                        |
+   Theme + Sentiment        (user, logs, Jira, ownership)   |                        |
+          |                         |                       |                        |
+          |                         v                       |                        v
+          |       +-----------------+-----------------+     |                +----------------------+
+          |       |   (used ONLY by 360° Context Agent)    |                | Leadership Dashboards|
+          |       |                                         |                |  & Reports           |
+          |       v                                         |                +----------------------+
+          |   +------------------+   +------------------+   |
+          |   | User Actions MCP |   |  Log Connector   |   |
+          |   | (feature usage   |   | (errors/events)  |   |
+          |   +------------------+   +------------------+   |
+          |          ^                     ^                |
+          |          |                     |                |
+          |   +------------------+   +------------------+   |
+          |   | Service Catalog  |   |   Jira (Read)    |   |
+          |   | (owning team /   |   | (existing epics, |   |
+          |   |  product mapping)|   |  bugs, features) |   |
+          |   +------------------+   +------------------+   |
+          |                                                   |
+          |                                                   |
+          |                     (3) Build Action Item          |
+          |              Theme + Sentiment + 360° Context      |
+          |                                                   v
+          |                                      +------------------+
+          |                                      |  Dev / Jira      |
+          |                                      |  (Create / link  |
+          |                                      |   tickets)       |
+          |                                      +------------------+
+          |                                                ^
+          |                                                |
+          |                                      +------------------+
+          |                                      |  Product Team    |
+          |                                      |  (Feature / UX   |
+          |                                      |   backlog)       |
+          |                                      +------------------+
+          |                                                ^
+          |                                                |
+          |                                      +------------------+
+          |                                      | Customer Agent / |
+          |                                      |   CRM (notify,   |
+          |                                      |   follow-up)     |
+          |                                      +------------------+
+          |                                                ^
+          |                                                |
+          |                                      +------------------+
+          |                                      | Release Calendar |
+          |                                      | (ETA / progress) |
+          |                                      +------------------+
+          |
+          +------------------------> (4) Action items, scores, Jira links
+                                       are streamed to Trend Analyzer Agent,
+                                       which aggregates trends and feeds
+                                       Leadership Dashboards.
+
