@@ -1,176 +1,32 @@
-🧾 Workflow Overview
-
-1️⃣ Trigger
-	•	A new high or critical finding is detected from Black Duck or Checkmarx pipelines.
-	•	The finding triggers the need for a policy exception (manual or automated ticket creation).
-
-2️⃣ Request Submission (Application Team)
-	•	User fills a ServiceNow Exception Request Form with:
-	•	Application name
-	•	Business owner / contact info
-	•	Tool source (Black Duck / Checkmarx)
-	•	Finding details (e.g., CWE ID, component, severity, description)
-	•	Reason for exception (why remediation is not feasible)
-	•	Proposed mitigation or compensating controls
-	•	Proposed end date (based on severity)
-	•	Attachments (e.g., screenshots, scan report, email approvals)
-
-3️⃣ SSG Review
-	•	ServiceNow automatically assigns the ticket (or creates an SCTASK) to the SSG queue.
-	•	SSG reviews:
-	•	Validates details & justification
-	•	Adds recommendations and/or compensating controls
-	•	Approves/rejects or routes to SG&R for final decision
-	•	Adds comments and recommendations in a structured field (e.g., “SSG Recommendation”)
-
-4️⃣ SG&R Final Approval
-	•	SG&R reviews SSG’s recommendations.
-	•	Either:
-	•	Approves the exception → sets approved until date (based on severity)
-	•	Rejects the request → sends back to application team with comments
-
-5️⃣ Expiry Tracking
-	•	Each exception must have an end date.
-	•	ServiceNow sends automated notifications:
-	•	15 days before expiry
-	•	On the day of expiry
-	•	Allows extension requests through a related “Extension Request” ticket or workflow.
-
-6️⃣ Search & Reporting
-	•	Tickets should be searchable by:
-	•	Application name
-	•	Ticket number
-	•	Finding ID (e.g., Black Duck or Checkmarx ID)
-	•	Ability to filter by status (Pending SSG, Pending SG&R, Approved, Expired, etc.)
-	•	Exportable reports (optional) showing active and expired exceptions.
-
-
-Severity
-Maximum Exception Period
-Review Frequency
-Critical
-90 days
-Monthly
-High
-180 days
-Quarterly
-
-
-Extension Workflow
-	•	Application team can request an extension before expiry.
-	•	New “Extension” ticket linked to the original exception ticket.
-	•	Must include:
-	•	Updated justification
-	•	Current remediation status
-	•	New proposed end date
-	•	Follows same approval workflow (SSG → SG&R).
-
-
-Technical Requirements (for Developer)
-	1.	Form Fields
-	•	Application Name (lookup)
-	•	Exception Type (Checkmarx / Black Duck)
-	•	Severity (Critical / High)
-	•	Finding ID
-	•	Description
-	•	Justification
-	•	Proposed End Date (auto-restricted based on severity)
-	•	Attachments
-	•	SSG Recommendation (field visible to SSG only)
-	•	SG&R Decision (dropdown: Approve / Reject)
-	•	Approved Until (date)
-	•	Current Status (Draft / Pending SSG / Pending SG&R / Approved / Rejected / Expired)
-	2.	Automation Rules
-	•	Auto-assign to SSG group upon submission.
-	•	Notify SG&R once SSG completes review.
-	•	Auto-close ticket after expiry (status = “Expired”).
-	•	Send email notifications to requestor & SSG at key milestones.
-	3.	Search & Reporting
-	•	Indexed by application, ticket number, and finding ID.
-	•	Dashboard for active, upcoming, and expired exceptions.
-
-Example Workflow
-	1.	Dev submits exception for AppX → Checkmarx → Critical finding.
-	2.	Ticket auto-assigned to SSG.
-	3.	SSG adds recommendation → moves to SG&R.
-	4.	SG&R approves for 90 days → end date auto-set.
-	5.	Notifications sent before expiry → extension request if needed.
-
-
-
-
-                 +-----------------------------------+
-                 |        Survey System              |
-                 |        (VOC Responses)            |
-                 +----------------+------------------+
-                                  |
-                                  v
-                        +----------------------+
-                        |   VOC Orchestrator   |
-                        +-----------+----------+
-                                    |
-            ----------------------------------------------------------------
-            |                      |                      |                |
-            v                      v                      v                v
-+--------------------+   +---------------------+  +------------------+  +----------------------+
-| Two-Tier LLM       |   | 360° Context Agent  |  |   Action Agent   |  | Trend Analyzer Agent |
-| Cascade            |   | (Data Collector)    |  | (Prioritize &    |  |                      |
-| (Classification)   |   +----------+----------+  |   Execute)        |  |                      |
-+---------+----------+              |             +---------+----------+  +----------+----------+
-          ^                         |                       |                        |
-          |                         |                       |                        |
-   (1) Classify comment            (2) Gather context       |                        |
-   Theme + Sentiment        (user, logs, Jira, ownership)   |                        |
-          |                         |                       |                        |
-          |                         v                       |                        v
-          |       +-----------------+-----------------+     |                +----------------------+
-          |       |   (used ONLY by 360° Context Agent)    |                | Leadership Dashboards|
-          |       |                                         |                |  & Reports           |
-          |       v                                         |                +----------------------+
-          |   +------------------+   +------------------+   |
-          |   | User Actions MCP |   |  Log Connector   |   |
-          |   | (feature usage   |   | (errors/events)  |   |
-          |   +------------------+   +------------------+   |
-          |          ^                     ^                |
-          |          |                     |                |
-          |   +------------------+   +------------------+   |
-          |   | Service Catalog  |   |   Jira (Read)    |   |
-          |   | (owning team /   |   | (existing epics, |   |
-          |   |  product mapping)|   |  bugs, features) |   |
-          |   +------------------+   +------------------+   |
-          |                                                   |
-          |                                                   |
-          |                     (3) Build Action Item          |
-          |              Theme + Sentiment + 360° Context      |
-          |                                                   v
-          |                                      +------------------+
-          |                                      |  Dev / Jira      |
-          |                                      |  (Create / link  |
-          |                                      |   tickets)       |
-          |                                      +------------------+
-          |                                                ^
-          |                                                |
-          |                                      +------------------+
-          |                                      |  Product Team    |
-          |                                      |  (Feature / UX   |
-          |                                      |   backlog)       |
-          |                                      +------------------+
-          |                                                ^
-          |                                                |
-          |                                      +------------------+
-          |                                      | Customer Agent / |
-          |                                      |   CRM (notify,   |
-          |                                      |   follow-up)     |
-          |                                      +------------------+
-          |                                                ^
-          |                                                |
-          |                                      +------------------+
-          |                                      | Release Calendar |
-          |                                      | (ETA / progress) |
-          |                                      +------------------+
-          |
-          +------------------------> (4) Action items, scores, Jira links
-                                       are streamed to Trend Analyzer Agent,
-                                       which aggregates trends and feeds
-                                       Leadership Dashboards.
-
+appsec-ai-security-initiatives/
+│
+├── README.md
+├── governance/
+│   ├── access-model.md
+│   ├── contribution-guidelines.md
+│   └── ai-risk-acceptance.md
+│
+├── secure-ai-dev/
+│   ├── ai-assisted-coding-guardrails/
+│   ├── prompt-security-standards/
+│   └── secure-llm-usage-patterns/
+│
+├── ai-for-appsec/
+│   ├── code-review-agents/
+│   ├── vuln-triage-agents/
+│   ├── auto-remediation/
+│   └── countermeasures-as-code/
+│
+├── detection-and-monitoring/
+│   ├── ai-generated-code-detection/
+│   ├── model-drift-and-abuse/
+│   └── supply-chain-llm-risk/
+│
+├── tooling-integrations/
+│   ├── semgrep/
+│   ├── sast-sca-dast/
+│   └── cicd-hooks/
+│
+└── roadmap/
+    ├── 2025.md
+    ├── 2026.md
