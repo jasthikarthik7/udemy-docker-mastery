@@ -1,34 +1,69 @@
-# Welcome to Jekyll!
-#
-# This config file is meant for settings that affect your whole blog, values
-# which you are expected to set up once and rarely edit after that. If you find
-# yourself editing this file very often, consider using Jekyll's data files
-# feature for the data you need to update frequently.
-#
-# For technical reasons, this file is *NOT* reloaded automatically when you use
-# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
+name: Semgrep
 
-# Site settings
-# These are used to personalize your new site. If you look in the HTML files,
-# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
-# You can create any custom variable you would like, and they will be accessible
-# in the templates via {{ site.myvariable }}.
-title: Your awesome title
-email: your-email@domain.com
-description: > # this means to ignore newlines until "baseurl:"
-  Write an awesome description for your new site here. You can edit this
-  line in _config.yml. It will appear in your document head meta (for
-  Google search results) and in your feed.xml site description.
-baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: jekyllrb
-github_username:  jekyll
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
 
-# Build settings
-markdown: kramdown
-theme: minima
-gems:
-  - jekyll-feed
-exclude:
-  - Gemfile
-  - Gemfile.lock
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: Semgrep Scan
+    runs-on: [self-hosted, aks-selfhosted]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Optional – replicate ADO secure cert handling
+      # Store full PEM as GitHub Secret: NFCU_FULL_CHAIN_SEMGREP_PEM
+      - name: Configure TLS trust (internal CA bundle)
+        if: ${{ secrets.NFCU_FULL_CHAIN_SEMGREP_PEM != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/nfcu_full_chain_semgrep.pem"
+          echo "${{ secrets.NFCU_FULL_CHAIN_SEMGREP_PEM }}" > "$CERT_PATH"
+          chmod 600 "$CERT_PATH"
+
+          echo "SEM_SSL_CERT_FILE=$CERT_PATH" >> $GITHUB_ENV
+          echo "SEM_REQUESTS_CA_BUNDLE=$CERT_PATH" >> $GITHUB_ENV
+          echo "SSL_CERT_FILE=$CERT_PATH" >> $GITHUB_ENV
+          echo "REQUESTS_CA_BUNDLE=$CERT_PATH" >> $GITHUB_ENV
+
+      # Login to internal Artifactory
+      - name: Docker login (Artifactory)
+        shell: bash
+        run: |
+          echo "${{ secrets.ARTIFACTORY_TOKEN }}" | docker login prod.artifactory.nfcu.net \
+            -u "${{ secrets.ARTIFACTORY_USER }}" --password-stdin
+
+      # Pull internal Semgrep image
+      - name: Pull Semgrep image
+        shell: bash
+        run: |
+          docker pull prod.artifactory.nfcu.net/docker/semgrep/semgrep:latest
+
+      # Run Semgrep CI
+      - name: Run Semgrep
+        shell: bash
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          docker run --rm \
+            -e SEMGREP_APP_TOKEN="${SEMGREP_APP_TOKEN}" \
+            -e SEM_SSL_CERT_FILE="${SEM_SSL_CERT_FILE:-}" \
+            -e SEM_REQUESTS_CA_BUNDLE="${SEM_REQUESTS_CA_BUNDLE:-}" \
+            -e SSL_CERT_FILE="${SSL_CERT_FILE:-}" \
+            -e REQUESTS_CA_BUNDLE="${REQUESTS_CA_BUNDLE:-}" \
+            -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" \
+            -w "${GITHUB_WORKSPACE}" \
+            prod.artifactory.nfcu.net/docker/semgrep/semgrep:latest \
+            semgrep ci
