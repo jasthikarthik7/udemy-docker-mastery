@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Threat-Informed Security Assurance Strategy</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --blue: #388bfd;
+    --blue-dim: #1f4a8a;
+    --purple: #bc8cff;
+    --purple-dim: #3d1f6e;
+    --orange: #f78166;
+    --orange-dim: #5e2a1a;
+    --green: #3fb950;
+    --green-dim: #1a4a24;
+    --yellow: #e3b341;
+    --red: #f85149;
+    --teal: #39d0c7;
+    --teal-dim: #0e3533;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* NAV */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .nav-title { font-size: 13px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .nav-controls { display: flex; gap: 8px; align-items: center; }
+  .nav-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { background: var(--border); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .slide-counter { font-size: 13px; color: var(--muted); min-width: 60px; text-align: center; }
+  .progress-dots { display: flex; gap: 6px; }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .dot.active { background: var(--blue); transform: scale(1.3); }
+  .dot:hover { background: var(--muted); }
+
+  /* SLIDES */
+  .slides-container { flex: 1; overflow: hidden; position: relative; }
+  .slide {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    padding: 36px 52px;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+    animation: fadeIn 0.25s ease;
+  }
+  .slide.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* TYPOGRAPHY */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .tag-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue-dim); }
+  .tag-purple { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple-dim); }
+  .tag-orange { background: var(--orange-dim); color: var(--orange); border: 1px solid var(--orange-dim); }
+  .tag-green { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-dim); }
+  .tag-teal { background: var(--teal-dim); color: var(--teal); border: 1px solid var(--teal-dim); }
+
+  h1 { font-size: 38px; font-weight: 700; line-height: 1.15; letter-spacing: -0.5px; }
+  h2 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 6px; }
+  h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .subtitle { font-size: 18px; color: var(--muted); margin-top: 10px; max-width: 640px; line-height: 1.5; }
+  .slide-desc { font-size: 14px; color: var(--muted); margin-bottom: 28px; max-width: 720px; line-height: 1.6; }
+
+  /* GRID HELPERS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .card-blue { border-color: var(--blue-dim); }
+  .card-purple { border-color: var(--purple-dim); }
+  .card-orange { border-color: var(--orange-dim); }
+  .card-green { border-color: var(--green-dim); }
+  .card-teal { border-color: var(--teal-dim); }
+
+  .card ul { padding-left: 16px; }
+  .card ul li { font-size: 13px; color: var(--muted); margin-bottom: 5px; line-height: 1.5; }
+  .card ul li strong { color: var(--text); }
+
+  /* PIPELINE DIAGRAM */
+  .pipeline {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 28px 0;
+    position: relative;
+  }
+  .pipeline-zone {
+    flex: 1;
+    padding: 20px 18px;
+    border-radius: 10px;
+    position: relative;
+  }
+  .pipeline-zone h3 { font-size: 13px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px; }
+  .pipeline-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    color: var(--border);
+    font-size: 22px;
+  }
+  .zone-left { background: rgba(56,139,253,0.07); border: 1px solid var(--blue-dim); }
+  .zone-mid { background: rgba(188,140,255,0.07); border: 1px solid var(--purple-dim); }
+  .zone-right { background: rgba(63,185,80,0.07); border: 1px solid var(--green-dim); }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    margin: 3px 2px;
+    cursor: default;
+  }
+  .pill-blue { background: var(--blue-dim); color: var(--blue); }
+  .pill-purple { background: var(--purple-dim); color: var(--purple); }
+  .pill-orange { background: var(--orange-dim); color: var(--orange); }
+  .pill-green { background: var(--green-dim); color: var(--green); }
+  .pill-teal { background: var(--teal-dim); color: var(--teal); }
+  .pill-yellow { background: #3b2f0b; color: var(--yellow); }
+  .pill-red { background: #3b1119; color: var(--red); }
+  .pill-dot::before { content: '●'; font-size: 8px; }
+
+  /* FLOW DIAGRAM */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+    width: 100%;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .flow-box {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    flex: 1;
+    max-width: 180px;
+  }
+  .flow-down {
+    display: flex;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    margin: 2px 0;
+  }
+  .flow-right { color: var(--muted); font-size: 20px; }
+
+  /* SIGNAL TABLE */
+  .signal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .signal-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface2);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .signal-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--surface2);
+    color: var(--muted);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  .signal-table td:first-child { color: var(--text); font-weight: 500; }
+  .signal-table tr:last-child td { border-bottom: none; }
+  .signal-table tr:hover td { background: var(--surface2); }
+
+  /* ROADMAP */
+  .roadmap {
+    display: flex;
+    gap: 0;
+    position: relative;
+    margin: 12px 0;
+  }
+  .roadmap::before {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: 40px;
+    right: 40px;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+  .roadmap-phase {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .phase-circle {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    border: 2px solid;
+  }
+  .phase-content { text-align: center; padding: 0 8px; }
+  .phase-content h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .phase-content p { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .phase-label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.5px; }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+  }
+  .code-block .kw { color: #ff7b72; }
+  .code-block .fn { color: #d2a8ff; }
+  .code-block .str { color: #a5d6ff; }
+  .code-block .cm { color: var(--muted); font-style: italic; }
+  .code-block .num { color: #79c0ff; }
+  .code-block .type { color: #ffa657; }
+
+  /* HIGHLIGHT BOX */
+  .highlight {
+    border-left: 3px solid;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 10px 0;
+  }
+  .highlight-blue { border-color: var(--blue); background: rgba(56,139,253,0.06); }
+  .highlight-purple { border-color: var(--purple); background: rgba(188,140,255,0.06); }
+  .highlight-green { border-color: var(--green); background: rgba(63,185,80,0.06); }
+  .highlight-orange { border-color: var(--orange); background: rgba(247,129,102,0.06); }
+
+  /* TITLE SLIDE SPECIFIC */
+  .title-slide { justify-content: center; }
+  .title-slide .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 18px;
+  }
+  .title-divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue), var(--purple));
+    border-radius: 2px;
+    margin: 24px 0;
+  }
+  .title-meta { display: flex; gap: 20px; margin-top: 8px; }
+  .title-meta span { font-size: 13px; color: var(--muted); }
+  .title-meta span strong { color: var(--text); }
+
+  /* STATS ROW */
+  .stats-row { display: flex; gap: 16px; margin: 16px 0; }
+  .stat-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .stat-num { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+  /* INTEGRATION MAP */
+  .integration-map {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr 60px 1fr;
+    gap: 0;
+    align-items: center;
+    margin: 18px 0;
+  }
+  .int-col { display: flex; flex-direction: column; gap: 8px; }
+  .int-arrow { display: flex; align-items: center; justify-content: center; }
+  .int-arrow svg { width: 40px; height: 24px; }
+
+  /* SCROLLBAR */
+  .slide::-webkit-scrollbar { width: 6px; }
+  .slide::-webkit-scrollbar-track { background: transparent; }
+  .slide::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* RESPONSIVE LABEL */
+  .slide-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .slide-number {
+    font-size: 11px;
+    color: var(--border);
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding-top: 4px;
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .badge-new { background: var(--purple-dim); color: var(--purple); }
+  .badge-critical { background: #3b1119; color: var(--red); }
+  .badge-soft { background: var(--green-dim); color: var(--green); }
+
+  /* KEYBOARD HINT */
+  .kbd-hint {
+    position: fixed;
+    bottom: 16px;
+    right: 20px;
+    font-size: 11px;
+    color: var(--border);
+  }
+  .kbd-hint kbd {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: inherit;
+    color: var(--muted);
+  }
+
+  /* TWO COLUMN */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-title">Product Integrity &amp; Testing &nbsp;·&nbsp; TISA Framework</div>
+  <div class="nav-controls">
+    <div class="progress-dots" id="dots"></div>
+    <span class="slide-counter" id="counter">1 / 10</span>
+    <button class="nav-btn" id="prev" onclick="go(-1)">← Prev</button>
+    <button class="nav-btn" id="next" onclick="go(1)">Next →</button>
+  </div>
+</div>
+
+<!-- SLIDES CONTAINER -->
+<div class="slides-container">
+
+  <!-- ═══════════════════════════ SLIDE 1: TITLE ═══════════════════════════ -->
+  <div class="slide active" id="slide-1">
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div class="eyebrow" style="font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--blue);margin-bottom:20px;">Enterprise Product Security</div>
+      <h1><span style="background: linear-gradient(135deg, var(--blue), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Product Integrity</span><br>&amp; Testing</h1>
+      <div style="margin-top:12px; margin-bottom:14px;">
+        <span style="display:inline-block; background:var(--purple-dim); border:1px solid var(--purple); color:var(--purple); font-size:12px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:4px 14px; border-radius:20px;">TISA — Threat-Informed Security Assurance</span>
+      </div>
+      <div class="subtitle">Continuous validation driven by your threat model, past incidents, and critical business workflows — evidence your controls work through every deploy.</div>
+      <div class="title-divider"></div>
+      <div style="display:flex; gap:24px; flex-wrap:wrap;">
+        <div class="pill pill-blue pill-dot">Continuous Validation</div>
+        <div class="pill pill-purple pill-dot">Threat-Informed Testing</div>
+        <div class="pill pill-green pill-dot">Non-Blocking by Default</div>
+        <div class="pill pill-teal pill-dot">Developer-Native</div>
+      </div>
+      <div class="title-meta" style="margin-top:28px;">
+        <span><strong>Framework:</strong> TISA — Threat-Informed Security Assurance</span>
+        <span><strong>Coverage:</strong> TAM · SAST · SCA · CVT · DAST · API</span>
+        <span><strong>Audience:</strong> Security Teams · Application Development Teams</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 2: THE PROBLEM ═══════════════════════════ -->
+  <div class="slide" id="slide-2">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-orange">The Problem</div>
+        <h2>Why Build-Blocking Alone Fails</h2>
+        <p class="slide-desc">Traditional AppSec pipelines create friction without proportional risk reduction. Teams learn to ignore alerts, suppress findings, or bypass gates entirely.</p>
+      </div>
+      <div class="slide-number">02</div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <h3 style="color:var(--red);">🚫 The Old Model</h3>
+        <ul>
+          <li><strong>SAST/SCA as hard gates</strong> — every critical finding blocks the build regardless of exploitability or context</li>
+          <li><strong>Alert fatigue</strong> — hundreds of findings, most theoretical, no signal-to-noise filtering</li>
+          <li><strong>Left-only thinking</strong> — static tools can't validate whether controls actually work at runtime</li>
+          <li><strong>No business context</strong> — a critical finding in dead code blocks the same as one in your payment flow</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--yellow);">⚠️ The Consequences</h3>
+        <ul>
+          <li><strong>Developer distrust</strong> — "just add a suppression comment" becomes the default response</li>
+          <li><strong>Compliance theater</strong> — tools running but findings not actioned</li>
+          <li><strong>Coverage gaps</strong> — incidents keep happening in areas the static tools missed</li>
+          <li><strong>No incident feedback loop</strong> — post-incident learnings never become regression tests</li>
+          <li><strong>TAM threats not validated</strong> — threat models exist in Confluence, not in CI/CD</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="highlight highlight-orange">
+      <strong>Core gap:</strong> There is no layer that takes a threat, an incident, or a critical finding and asks: <em>"Is the control that should prevent this actually working in production?"</em> — and does it continuously, without blocking velocity.
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 3: THE VISION ═══════════════════════════ -->
+  <div class="slide" id="slide-3">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-blue">The Vision</div>
+        <h2>Continuous Security Assurance</h2>
+        <p class="slide-desc">Move from reactive gates to a continuous, evidence-based assurance model where every control has a test, and every risk has a validated mitigation status.</p>
+      </div>
+      <div class="slide-number">03</div>
+    </div>
+
+    <div class="three-col" style="margin-bottom: 20px;">
+      <div class="card card-blue">
+        <div class="tag tag-blue" style="margin-bottom:10px;">Principle 1</div>
+        <h3 style="color:var(--blue);">Threat-Informed</h3>
+        <p style="font-size:13px; color:var(--muted); line-height:1.6;">Every test case traces back to a threat (TAM), a finding (SAST/SCA), or a real incident. No test exists without a risk owner.</p>
+      </div>
+      <div class="card card-purple">
+        <div class="tag tag-purple" style="margin-bottom:10px;">Principle 2</div>
+        <h3 style="color:var(--purple);">Control-Validated</h3>
+        <p style="font-size:13px; color:var(--muted); line-height:1.6;">We don't just detect vulnerabilities — we continuously verify that the controls meant to prevent them are functioning as designed.</p>
+      </div>
+      <div class="card card-green">
+        <div class="tag tag-green" style="margin-bottom:10px;">Principle 3</div>
+        <h3 style="color:var(--green);">Non-Blocking by Default</h3>
+        <p style="font-size:13px; color:var(--muted); line-height:1.6;">Build velocity is preserved. Blocking is reserved for critical business workflow failures and confirmed exploitable CVEs — not theoretical risk.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h3 style="margin-bottom:14px;">The Signal → Test → Evidence Loop</h3>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div class="pill pill-orange">📋 TAM Threats</div>
+        <div class="flow-right">→</div>
+        <div class="pill pill-blue">🔍 SAST Criticalities</div>
+        <div class="flow-right">→</div>
+        <div class="pill pill-red">🔥 Past Incidents</div>
+        <div class="flow-right">→</div>
+        <div class="pill pill-yellow">🛒 Business Workflows</div>
+        <div class="flow-right">→</div>
+        <div class="pill pill-purple">🧪 TISA Test Cases</div>
+        <div class="flow-right">→</div>
+        <div class="pill pill-teal">✅ Control Evidence</div>
+        <div class="flow-right">→</div>
+        <div class="pill pill-green">📊 Risk Posture</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="highlight highlight-blue">
+        <strong>Left (Static):</strong> SAST, SCA, TAM identify <em>what could go wrong</em>. These become the requirements for control validation tests.
+      </div>
+      <div class="highlight highlight-green">
+        <strong>Right (Dynamic):</strong> DAST and API Security Testing validate <em>what is actually exposed</em>. TISA tests provide the semantic layer between them.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 4: ARCHITECTURE ═══════════════════════════ -->
+  <div class="slide" id="slide-4">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-purple">Architecture</div>
+        <h2>The TISA Framework Overview</h2>
+        <p class="slide-desc">Product Integrity Testing (TISA) sits as the semantic validation layer between static analysis signals and dynamic runtime testing.</p>
+      </div>
+      <div class="slide-number">04</div>
+    </div>
+
+    <!-- Main pipeline diagram -->
+    <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom:16px;">
+
+      <!-- Top row: Signal Sources -->
+      <div style="margin-bottom:8px; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted);">Signal Sources</div>
+      <div style="display:grid; grid-template-columns: repeat(5,1fr); gap:8px; margin-bottom:20px;">
+        <div class="pill pill-orange" style="justify-content:center;">🎯 TAM / Threat Model</div>
+        <div class="pill pill-blue" style="justify-content:center;">🔍 SAST Findings</div>
+        <div class="pill pill-yellow" style="justify-content:center;">📦 SCA / CVEs</div>
+        <div class="pill pill-red" style="justify-content:center;">🔥 Past Incidents</div>
+        <div class="pill pill-teal" style="justify-content:center;">🛒 Biz Workflows</div>
+      </div>
+
+      <!-- Arrow down -->
+      <div style="display:flex; justify-content:center; font-size:20px; color:var(--muted); margin-bottom:14px;">↓</div>
+
+      <!-- Three zones -->
+      <div style="display:grid; grid-template-columns: 1fr 24px 1.4fr 24px 1fr; align-items:stretch; gap:0;">
+
+        <!-- LEFT ZONE -->
+        <div style="background:rgba(56,139,253,0.06); border:1px solid var(--blue-dim); border-radius:10px; padding:16px;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--blue); margin-bottom:12px;">◀ SHIFT LEFT</div>
+          <div style="font-size:13px; font-weight:600; margin-bottom:10px;">Static Analysis</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div class="pill pill-blue" style="font-size:11px;">SAST — Code Scanning</div>
+            <div class="pill pill-blue" style="font-size:11px;">SCA — Dep Scanning</div>
+            <div class="pill pill-blue" style="font-size:11px;">Secrets Detection</div>
+          </div>
+          <div style="margin-top:12px; font-size:11px; color:var(--muted);">Gate: Critical + Exploitable only</div>
+        </div>
+
+        <!-- Arrow -->
+        <div style="display:flex; align-items:center; justify-content:center; color:var(--muted);">→</div>
+
+        <!-- MIDDLE ZONE (TISA) -->
+        <div style="background:rgba(188,140,255,0.08); border:2px solid var(--purple); border-radius:10px; padding:16px; position:relative;">
+          <div style="position:absolute; top:-11px; left:50%; transform:translateX(-50%); background:var(--purple); color:white; font-size:10px; font-weight:700; letter-spacing:1px; padding:2px 12px; border-radius:20px; text-transform:uppercase; white-space:nowrap;">★ TISA — THE GAP LAYER</div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--purple); margin-bottom:6px; margin-top:4px;">WHAT DAST CANNOT DO</div>
+          <div style="font-size:13px; font-weight:600; margin-bottom:10px;">Product Integrity Tests</div>
+          <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;">
+            <div class="pill pill-purple" style="font-size:11px;">🔥 Incident Regression Tests</div>
+            <div class="pill pill-purple" style="font-size:11px;">🎯 TAM Threat Validation</div>
+            <div class="pill pill-purple" style="font-size:11px;">🛒 Workflow Integrity Checks</div>
+          </div>
+          <div style="font-size:11px; color:var(--orange); border-top:1px solid var(--purple-dim); padding-top:8px; margin-top:4px;">✗ Not injection scanning — DAST owns that<br>✗ Not CORS/rate-limit — API tools own that</div>
+          <div style="font-size:11px; color:var(--muted); margin-top:6px;">Gate: Critical workflow failures only<br>All else: tracked, SLA-driven</div>
+        </div>
+
+        <!-- Arrow -->
+        <div style="display:flex; align-items:center; justify-content:center; color:var(--muted);">→</div>
+
+        <!-- RIGHT ZONE -->
+        <div style="background:rgba(63,185,80,0.06); border:1px solid var(--green-dim); border-radius:10px; padding:16px;">
+          <div style="font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--green); margin-bottom:12px;">SHIFT RIGHT ▶</div>
+          <div style="font-size:13px; font-weight:600; margin-bottom:10px;">Dynamic Testing</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div class="pill pill-green" style="font-size:11px;">DAST — Web App Scanning</div>
+            <div class="pill pill-green" style="font-size:11px;">API Security Testing</div>
+            <div class="pill pill-green" style="font-size:11px;">Pentest Automation</div>
+          </div>
+          <div style="margin-top:12px; font-size:11px; color:var(--muted);">Gate: SLA-based, not build-blocking</div>
+        </div>
+      </div>
+
+      <!-- Bottom: outputs -->
+      <div style="display:flex; justify-content:center; font-size:20px; color:var(--muted); margin:14px 0 10px;">↓</div>
+      <div style="font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; text-align:center;">Outputs</div>
+      <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:8px; margin-bottom:18px;">
+        <div class="pill pill-teal" style="justify-content:center;">📊 Risk Posture Dashboard</div>
+        <div class="pill pill-green" style="justify-content:center;">✅ Control Evidence</div>
+        <div class="pill pill-yellow" style="justify-content:center;">🎫 SLA Ticket Backlog</div>
+        <div class="pill pill-blue" style="justify-content:center;">📋 Compliance Reports</div>
+      </div>
+
+      <!-- Feedback loops -->
+      <div style="border-top: 1px dashed var(--border); padding-top:14px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--orange); margin-bottom:10px; text-align:center;">↺ &nbsp;Feedback Loops — Every Stage Feeds Back Left</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:8px;">
+          <div style="background:rgba(247,129,102,0.07); border:1px solid var(--orange-dim); border-radius:8px; padding:10px; font-size:11px;">
+            <div style="color:var(--orange); font-weight:700; margin-bottom:4px;">Tenable / Noname → SAST</div>
+            <div style="color:var(--muted); line-height:1.5;">Runtime attack patterns become custom SAST rules — caught at commit next time</div>
+          </div>
+          <div style="background:rgba(247,129,102,0.07); border:1px solid var(--orange-dim); border-radius:8px; padding:10px; font-size:11px;">
+            <div style="color:var(--orange); font-weight:700; margin-bottom:4px;">Tenable / Noname → TAM</div>
+            <div style="color:var(--muted); line-height:1.5;">Attack vectors discovered at runtime that weren't modelled trigger a TAM refresh</div>
+          </div>
+          <div style="background:rgba(188,140,255,0.07); border:1px solid var(--purple-dim); border-radius:8px; padding:10px; font-size:11px;">
+            <div style="color:var(--purple); font-weight:700; margin-bottom:4px;">TISA Failures → SAST Rules</div>
+            <div style="color:var(--muted); line-height:1.5;">Recurring control failures evaluated for static detectability — custom rule added if viable</div>
+          </div>
+          <div style="background:rgba(188,140,255,0.07); border:1px solid var(--purple-dim); border-radius:8px; padding:10px; font-size:11px;">
+            <div style="color:var(--purple); font-weight:700; margin-bottom:4px;">Incidents → Everything Left</div>
+            <div style="color:var(--muted); line-height:1.5;">Incidents update TAM, generate SAST rules, tighten SCA policy, and add TISA regressions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 5: SIGNAL SOURCES ═══════════════════════════ -->
+  <div class="slide" id="slide-6">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-orange">Signal Sources</div>
+        <h2>What Drives TISA Test Cases</h2>
+        <p class="slide-desc">Every TISA test must trace to a concrete signal. No signal, no test. This keeps the library lean, high-fidelity, and business-relevant.</p>
+      </div>
+      <div class="slide-number">06</div>
+    </div>
+
+    <table class="signal-table">
+      <thead>
+        <tr>
+          <th>Signal Source</th>
+          <th>What It Provides</th>
+          <th>Example TISA Test Generated</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="pill pill-red" style="display:inline-flex;">🔥 Past Incidents</div></td>
+          <td>Exact attack scenario, affected endpoint, root cause</td>
+          <td>Replay the incident scenario as an automated regression test that must pass in every deploy</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td><div class="pill pill-orange" style="display:inline-flex;">🎯 TAM Threats</div></td>
+          <td>Threat actor, attack vector, target asset, assumed control</td>
+          <td>Validate that the assumed mitigating control (e.g., rate limiting, auth check) is implemented and enforced</td>
+          <td><span class="badge badge-critical">P1</span></td>
+        </tr>
+        <tr>
+          <td><div class="pill pill-teal" style="display:inline-flex;">🛒 Critical Workflows</div></td>
+          <td>Business flows where integrity failure = direct impact (checkout, auth, payments, data export)</td>
+          <td>End-to-end security assertions on workflow steps: authorization at each step, no privilege escalation, correct data scoping</td>
+          <td><span class="badge badge-critical">P1</span></td>
+        </tr>
+        <tr>
+          <td><div class="pill pill-blue" style="display:inline-flex;">🔍 SAST Criticalities</div></td>
+          <td>Confirmed-exploitable high/critical findings in production code paths</td>
+          <td>Dynamic validation that the exploitable code path is actually reachable and the input is unsanitized at runtime</td>
+          <td><span class="badge" style="background:rgba(56,139,253,0.2);color:var(--blue);">P2</span></td>
+        </tr>
+        <tr>
+          <td><div class="pill pill-yellow" style="display:inline-flex;">📦 SCA / CVEs</div></td>
+          <td>CVSS 9+, with PoC exploit available, in a direct dependency</td>
+          <td>Probe test confirming the vulnerable code path is either unreachable, patched, or compensating control is active</td>
+          <td><span class="badge" style="background:rgba(56,139,253,0.2);color:var(--blue);">P2</span></td>
+        </tr>
+        <tr>
+          <td><div class="pill pill-blue" style="display:inline-flex;">🔍 SAST / SCA Criticals</div></td>
+          <td>Confirmed-exploitable CVSS 9+ finding in a production code path that DAST (Tenable) may not exercise during its crawl</td>
+          <td>Targeted exploitability probe — exercises the exact flagged endpoint/parameter to confirm the vulnerability is reachable and unsanitized at runtime. Not a re-scan.</td>
+          <td><span class="badge" style="background:rgba(56,139,253,0.2);color:var(--blue);">P2</span></td>
+        </tr>
+        <tr>
+          <td><div class="pill pill-teal" style="display:inline-flex;">🏭 Compliance Controls</div></td>
+          <td>PCI-DSS, SOC2, HIPAA control requirements</td>
+          <td>Control validation test asserting the technical control exists (e.g., encryption at rest, audit logging, access review)</td>
+          <td><span class="badge badge-soft">P3</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight highlight-blue" style="margin-top:16px;">
+      <strong>Why SAST/SCA criticals belong here too:</strong> Tenable fuzzes broadly but may never hit the exact code path SAST flagged. A TISA probe targeted at the specific endpoint and parameter SAST identified is more precise than hoping DAST's crawl covers it — and it runs in under 10 seconds.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 5b: TISA vs DAST ═══════════════════════════ -->
+  <div class="slide" id="slide-5">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-orange">Addressing the Team</div>
+        <h2>"Can't We Just Use DAST / Noname?"</h2>
+        <p class="slide-desc">Honest answer: there is real overlap — roughly 30–40%. But the 60–70% that DAST and API security tools cannot cover is exactly where incidents keep recurring.</p>
+      </div>
+      <div class="slide-number">05</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px; margin-bottom:18px;">
+      <div style="background:rgba(248,81,73,0.06); border:1px solid #3b1119; border-radius:10px; padding:16px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--red); margin-bottom:12px;">❌ Where DAST Falls Short</div>
+        <ul style="padding-left:16px;">
+          <li style="font-size:13px; color:var(--muted); margin-bottom:8px; line-height:1.5;"><strong style="color:var(--text);">No memory of your incidents</strong> — DAST crawls generically; it has no knowledge of your 2024 SQLi or IDOR incident</li>
+          <li style="font-size:13px; color:var(--muted); margin-bottom:8px; line-height:1.5;"><strong style="color:var(--text);">No threat model context</strong> — Noname doesn't know TAM-042 says "attacker bypasses checkout via BOLA"</li>
+          <li style="font-size:13px; color:var(--muted); margin-bottom:8px; line-height:1.5;"><strong style="color:var(--text);">Can't validate business logic</strong> — a 5-step checkout flow's authorization integrity requires knowing your semantics</li>
+          <li style="font-size:13px; color:var(--muted); line-height:1.5;"><strong style="color:var(--text);">Finds new issues, not regressions</strong> — if a post-incident control silently drifts, DAST won't notice</li>
+        </ul>
+      </div>
+      <div style="background:rgba(63,185,80,0.05); border:1px solid var(--green-dim); border-radius:10px; padding:16px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--green); margin-bottom:12px;">✅ What Tenable &amp; Noname Own — Let Them</div>
+        <div style="font-size:11px; font-weight:700; color:var(--blue); margin-bottom:6px; margin-top:4px;">Tenable (DAST)</div>
+        <ul style="padding-left:16px; margin-bottom:10px;">
+          <li style="font-size:13px; color:var(--muted); margin-bottom:6px; line-height:1.5;"><strong style="color:var(--text);">Injection &amp; web app scanning</strong> — SQLi, XSS, command injection across all endpoints</li>
+          <li style="font-size:13px; color:var(--muted); line-height:1.5;"><strong style="color:var(--text);">Broad vulnerability discovery</strong> — crawls and finds unknown issues TISA won't</li>
+        </ul>
+        <div style="font-size:11px; font-weight:700; color:var(--teal); margin-bottom:6px;">Noname (API Security)</div>
+        <ul style="padding-left:16px;">
+          <li style="font-size:13px; color:var(--muted); margin-bottom:6px; line-height:1.5;"><strong style="color:var(--text);">API discovery &amp; inventory</strong> — finds shadow and undocumented APIs via traffic analysis</li>
+          <li style="font-size:13px; color:var(--muted); margin-bottom:6px; line-height:1.5;"><strong style="color:var(--text);">CORS, rate limiting, schema drift</strong> — runtime API posture and OpenAPI conformance</li>
+          <li style="font-size:13px; color:var(--muted); line-height:1.5;"><strong style="color:var(--text);">Sensitive data exposure</strong> — detects PII/secrets leaking in API responses</li>
+        </ul>
+        <div style="margin-top:12px; font-size:12px; color:var(--green); font-style:italic;">TISA explicitly does NOT duplicate these.</div>
+      </div>
+      <div style="background:rgba(188,140,255,0.07); border:2px solid var(--purple); border-radius:10px; padding:16px;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--purple); margin-bottom:12px;">★ TISA Owns the 3 Gaps</div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="background:rgba(188,140,255,0.1); border-radius:8px; padding:10px;">
+            <div style="font-size:12px; font-weight:700; color:var(--purple); margin-bottom:4px;">🔥 Incident Regressions</div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.5;">Replay exact past incident scenarios on every deploy. No other tool does this.</div>
+          </div>
+          <div style="background:rgba(188,140,255,0.1); border-radius:8px; padding:10px;">
+            <div style="font-size:12px; font-weight:700; color:var(--purple); margin-bottom:4px;">🎯 TAM Threat Validation</div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.5;">Confirm that each assumed mitigating control in your threat model is actually enforced.</div>
+          </div>
+          <div style="background:rgba(188,140,255,0.1); border-radius:8px; padding:10px;">
+            <div style="font-size:12px; font-weight:700; color:var(--purple); margin-bottom:4px;">🛒 Workflow Integrity</div>
+            <div style="font-size:12px; color:var(--muted); line-height:1.5;">Multi-step business flow security assertions that require knowing your domain logic.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <table class="signal-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Tenable (DAST)</th>
+          <th>Noname (API Security)</th>
+          <th>TISA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Generic injection / fuzzing</td>
+          <td><span style="color:var(--green);">✅ Owns this</span></td>
+          <td><span style="color:var(--green);">✅ Partial</span></td>
+          <td><span style="color:var(--red);">✗ Deliberately out of scope</span></td>
+        </tr>
+        <tr>
+          <td>CORS, rate limiting, schema drift</td>
+          <td><span style="color:var(--yellow);">Partial</span></td>
+          <td><span style="color:var(--green);">✅ Owns this</span></td>
+          <td><span style="color:var(--red);">✗ Deliberately out of scope</span></td>
+        </tr>
+        <tr>
+          <td>Replay exact past incident scenario</td>
+          <td><span style="color:var(--red);">✗ No incident memory</span></td>
+          <td><span style="color:var(--red);">✗ No incident memory</span></td>
+          <td><span style="color:var(--green);">✅ Core feature</span></td>
+        </tr>
+        <tr>
+          <td>Validate TAM-linked control is enforced</td>
+          <td><span style="color:var(--red);">✗ No threat model context</span></td>
+          <td><span style="color:var(--red);">✗ No threat model context</span></td>
+          <td><span style="color:var(--green);">✅ Core feature</span></td>
+        </tr>
+        <tr>
+          <td>Multi-step workflow authorization integrity</td>
+          <td><span style="color:var(--red);">✗ No business semantics</span></td>
+          <td><span style="color:var(--yellow);">Partial (traffic analysis only)</span></td>
+          <td><span style="color:var(--green);">✅ Core feature</span></td>
+        </tr>
+        <tr>
+          <td>Control drift detection post-incident</td>
+          <td><span style="color:var(--red);">✗</span></td>
+          <td><span style="color:var(--red);">✗</span></td>
+          <td><span style="color:var(--green);">✅ Core feature</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 6: THE TISA LAYER ═══════════════════════════ -->
+  <div class="slide" id="slide-7">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-purple">The Middle Layer</div>
+        <h2>TISA Test Taxonomy — The 3 Focused Areas <span class="badge badge-new">SCOPED</span></h2>
+        <p class="slide-desc">TISA deliberately covers only what DAST and API security tools cannot. A lean library of 30–50 high-signal tests beats 500 noisy ones every time.</p>
+      </div>
+      <div class="slide-number">07</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom:16px;">
+
+      <div class="card card-purple">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--red); margin-bottom:10px;">🔥 Area 1 — Incident Regressions</div>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5;">Every past incident becomes a permanent, automated regression test. If the fix drifts, CI/CD catches it before production does.</p>
+        <ul>
+          <li><strong>Exact payload replay</strong> — the specific request that exploited you must now be blocked</li>
+          <li><strong>Control persistence check</strong> — the post-incident control is validated on every deploy</li>
+          <li><strong>Hotfix survival test</strong> — emergency patches confirmed to survive dependency updates</li>
+          <li><strong>WAF rule validation</strong> — rules added post-incident are still active and enforced</li>
+        </ul>
+        <div style="margin-top:12px; padding:8px; background:rgba(248,81,73,0.08); border-radius:6px; font-size:11px; color:var(--muted);">
+          <strong style="color:var(--text);">Signal source:</strong> Incident post-mortem tickets (Jira, PagerDuty)<br>
+          <strong style="color:var(--text);">SLA to add test:</strong> 48h from incident close
+        </div>
+      </div>
+
+      <div class="card card-purple">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--orange); margin-bottom:10px;">🎯 Area 2 — TAM Threat Validation</div>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5;">For each TAM P0/P1 threat, there is an assumed mitigating control. TISA validates that control is actually implemented and not theoretical.</p>
+        <ul>
+          <li><strong>Auth bypass probes</strong> — TAM assumes auth gate; TISA confirms it rejects unauthorized requests</li>
+          <li><strong>Privilege boundary checks</strong> — TAM assumes role separation; TISA confirms vertical escalation is blocked</li>
+          <li><strong>BOLA / IDOR per threat</strong> — TAM assumes scoped data access; TISA validates with real user contexts</li>
+          <li><strong>Session control assertions</strong> — TAM assumes session invalidation; TISA confirms logout is effective</li>
+        </ul>
+        <div style="margin-top:12px; padding:8px; background:rgba(247,129,102,0.08); border-radius:6px; font-size:11px; color:var(--muted);">
+          <strong style="color:var(--text);">Signal source:</strong> TAM export (STRIDE / PASTA / threat model doc)<br>
+          <strong style="color:var(--text);">Coverage target:</strong> 100% of P0, 80% of P1 threats
+        </div>
+      </div>
+
+      <div class="card card-purple">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--teal); margin-bottom:10px;">🛒 Area 3 — Workflow Integrity</div>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5;">Critical business flows (checkout, auth, payments, data export) must maintain security invariants across every step. DAST cannot encode these — only you can.</p>
+        <ul>
+          <li><strong>Step-by-step authZ</strong> — authorization re-validated at each workflow stage, not just entry</li>
+          <li><strong>Cross-user isolation</strong> — user A's session cannot touch user B's workflow state</li>
+          <li><strong>State manipulation</strong> — skipping steps or replaying steps is detected and rejected</li>
+          <li><strong>Data scoping</strong> — responses contain only data the authenticated user owns</li>
+        </ul>
+        <div style="margin-top:12px; padding:8px; background:rgba(57,208,199,0.08); border-radius:6px; font-size:11px; color:var(--muted);">
+          <strong style="color:var(--text);">Signal source:</strong> Product/engineering workflow documentation<br>
+          <strong style="color:var(--text);">Coverage target:</strong> All P0 business flows instrumented
+        </div>
+      </div>
+
+      <div class="card card-purple">
+        <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--blue); margin-bottom:10px;">🔍 Area 4 — SAST/SCA Exploitability Probes <span class="badge" style="background:rgba(56,139,253,0.2);color:var(--blue);">P2</span></div>
+        <p style="font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.5;">Tenable fuzzes broadly but may never hit the exact path SAST flagged. A targeted runtime probe confirms the specific finding is actually reachable and exploitable — not theoretical.</p>
+        <ul>
+          <li><strong>Reachability confirmation</strong> — exercise the exact endpoint/parameter SAST identified, not a generic fuzz</li>
+          <li><strong>Input sanitization probe</strong> — confirm user-controlled input reaches the flagged sink unsanitized</li>
+          <li><strong>CVE path reachability</strong> — confirm a CVSS 9+ dependency is actually invoked in the production code path</li>
+          <li><strong>Compensating control check</strong> — if SCA finding is accepted risk, confirm the compensating control is active</li>
+        </ul>
+        <div style="margin-top:12px; padding:8px; background:rgba(56,139,253,0.08); border-radius:6px; font-size:11px; color:var(--muted);">
+          <strong style="color:var(--text);">Signal source:</strong> SAST triage (confirmed exploitable only) + SCA CVSS 9+ with PoC<br>
+          <strong style="color:var(--text);">Scope guard:</strong> Only when Tenable is unlikely to exercise that specific path
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="highlight highlight-orange">
+        <strong>What TISA does NOT do:</strong> Generic injection fuzzing, CORS checks, rate limit validation, API schema drift — these belong in Tenable and Noname. Keeping TISA narrow is what makes it maintainable.
+      </div>
+      <div class="highlight highlight-purple">
+        <strong>Test structure:</strong> Each test carries <code>risk_id</code> (TAM ID, incident ticket, or SAST finding ID), <code>area</code> (regression | threat | workflow | probe), and <code>gate</code> (hard_block | sla_tracked). No test without a risk owner.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 7: GATING STRATEGY ═══════════════════════════ -->
+  <div class="slide" id="slide-8">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-green">Gating Strategy</div>
+        <h2>Softened Gates with Risk-Based SLAs</h2>
+        <p class="slide-desc">Replace binary block/pass with a three-tier gating model. Only confirmed, business-critical failures stop a deployment. Everything else enters a tracked backlog with SLA timers.</p>
+      </div>
+      <div class="slide-number">08</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+
+      <div style="display:grid; grid-template-columns: 140px 1fr 160px; gap:16px; align-items:center; background:rgba(248,81,73,0.06); border:1px solid #3b1119; border-radius:10px; padding:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:28px; margin-bottom:4px;">🛑</div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--red);">HARD BLOCK</div>
+        </div>
+        <div>
+          <h3 style="color:var(--red); margin-bottom:6px;">Deployment blocked immediately</h3>
+          <p style="font-size:13px; color:var(--muted); line-height:1.6;">TISA test fails on a <strong>critical business workflow</strong> (auth, checkout, payments, data access) <em>or</em> confirmed-exploitable CVSS 10 in a reachable direct dependency with active public PoC. TAM P0 threat with no mitigating control.</p>
+        </div>
+        <div style="text-align:right;">
+          <div class="pill pill-red">~2–5% of findings</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 140px 1fr 160px; gap:16px; align-items:center; background:rgba(227,179,65,0.06); border:1px solid #3b2f0b; border-radius:10px; padding:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:28px; margin-bottom:4px;">⏱️</div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--yellow);">SLA GATE</div>
+        </div>
+        <div>
+          <h3 style="color:var(--yellow); margin-bottom:6px;">Deploy proceeds — ticket created with SLA timer</h3>
+          <p style="font-size:13px; color:var(--muted); line-height:1.6;">High-severity SAST/SCA findings (non-critical workflows), TAM P1/P2 threats, TISA test failures on non-critical paths, DAST high findings. <strong>SLA: 72h (critical) / 7d (high) / 30d (medium).</strong> Missed SLA triggers escalation and eventual block.</p>
+        </div>
+        <div style="text-align:right;">
+          <div class="pill pill-yellow">~20–30% of findings</div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 140px 1fr 160px; gap:16px; align-items:center; background:rgba(63,185,80,0.05); border:1px solid var(--green-dim); border-radius:10px; padding:16px;">
+        <div style="text-align:center;">
+          <div style="font-size:28px; margin-bottom:4px;">✅</div>
+          <div style="font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--green);">INFORMATIONAL</div>
+        </div>
+        <div>
+          <h3 style="color:var(--green); margin-bottom:6px;">Deploy proceeds — tracked in risk dashboard</h3>
+          <p style="font-size:13px; color:var(--muted); line-height:1.6;">Low/medium SAST findings, low CVSS CVEs, DAST informational findings, compliance drift (non-urgent). Surfaced in the posture dashboard for quarterly review. No ticket created automatically.</p>
+        </div>
+        <div style="text-align:right;">
+          <div class="pill pill-green">~65–75% of findings</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight highlight-blue">
+      <strong>Leadership talking point:</strong> This model reduces meaningless blocks by ~80% while increasing coverage of <em>real</em> business risk. We're trading noise-blocking for signal-blocking.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SLIDE 10: LEADERSHIP SUMMARY ═══════════════════════════ -->
+  <!-- ═══════════════════════════ SLIDE 9: FEEDBACK LOOPS ═══════════════════════════ -->
+  <div class="slide" id="slide-9">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-orange">Closed-Loop Architecture</div>
+        <h2>Right-to-Left Feedback Loops</h2>
+        <p class="slide-desc">The pipeline is not a one-way conveyor. Every right-side discovery is a missed left-side detection opportunity. Closing these loops turns the framework into a learning system.</p>
+      </div>
+      <div class="slide-number">09</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+
+      <!-- Loop 1 -->
+      <div style="display:grid; grid-template-columns: 200px 40px 1fr 40px 1fr; align-items:center; gap:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+        <div style="background:rgba(63,185,80,0.08); padding:14px 16px; border-right:1px solid var(--border); height:100%; display:flex; align-items:center;">
+          <div>
+            <div style="font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--green); margin-bottom:4px;">Signal Source</div>
+            <div style="font-size:13px; font-weight:600;">Tenable / Noname<br><span style="font-size:11px; color:var(--muted); font-weight:400;">Runtime finding</span></div>
+          </div>
+        </div>
+        <div style="text-align:center; font-size:18px; color:var(--orange);">←</div>
+        <div style="padding:14px 16px; border-right:1px solid var(--border);">
+          <div style="font-size:12px; font-weight:700; color:var(--orange); margin-bottom:4px;">→ Custom SAST Rule</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.5;">Attack pattern discovered at runtime is codified as a custom SAST rule. Next time a developer introduces that pattern, it's caught at commit — not in production.</div>
+          <div style="margin-top:6px;"><span class="pill pill-orange" style="font-size:10px;">Example: BOLA pattern found in Noname → custom rule detects missing ownership check in code review</span></div>
+        </div>
+        <div style="text-align:center; font-size:18px; color:var(--orange);">←</div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:12px; font-weight:700; color:var(--blue); margin-bottom:4px;">→ Pattern Library Update</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.5;">If the pattern is broad enough, it enters the shared SAST pattern library — not just one custom rule but a reusable detection across all services.</div>
+          <div style="margin-top:6px;"><span class="pill pill-blue" style="font-size:10px;">Threshold: seen in 2+ services → promote to shared library</span></div>
+        </div>
+      </div>
+
+      <!-- Loop 2 -->
+      <div style="display:grid; grid-template-columns: 200px 40px 1fr 40px 1fr; align-items:center; gap:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+        <div style="background:rgba(63,185,80,0.08); padding:14px 16px; border-right:1px solid var(--border); height:100%; display:flex; align-items:center;">
+          <div>
+            <div style="font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--green); margin-bottom:4px;">Signal Source</div>
+            <div style="font-size:13px; font-weight:600;">Tenable / Noname<br><span style="font-size:11px; color:var(--muted); font-weight:400;">Novel attack vector</span></div>
+          </div>
+        </div>
+        <div style="text-align:center; font-size:18px; color:var(--orange);">←</div>
+        <div style="padding:14px 16px; border-right:1px solid var(--border);">
+          <div style="font-size:12px; font-weight:700; color:var(--orange); margin-bottom:4px;">→ TAM Refresh</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.5;">Attack vector discovered at runtime that wasn't in the threat model triggers a TAM update cycle. The threat model must reflect reality, not just design-time assumptions.</div>
+          <div style="margin-top:6px;"><span class="pill pill-orange" style="font-size:10px;">SLA: TAM updated within 2 weeks of confirmed novel finding</span></div>
+        </div>
+        <div style="text-align:center; font-size:18px; color:var(--orange);">←</div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:12px; font-weight:700; color:var(--purple); margin-bottom:4px;">→ New TISA Test</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.5;">The updated TAM threat immediately generates a TISA test candidate to validate the assumed mitigating control for the new vector.</div>
+          <div style="margin-top:6px;"><span class="pill pill-purple" style="font-size:10px;">TAM update → TISA test draft within 1 sprint</span></div>
+        </div>
+      </div>
+
+      <!-- Loop 3 -->
+      <div style="display:grid; grid-template-columns: 200px 40px 1fr 40px 1fr; align-items:center; gap:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+        <div style="background:rgba(188,140,255,0.08); padding:14px 16px; border-right:1px solid var(--border); height:100%; display:flex; align-items:center;">
+          <div>
+            <div style="font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--purple); margin-bottom:4px;">Signal Source</div>
+            <div style="font-size:13px; font-weight:600;">TISA Failure<br><span style="font-size:11px; color:var(--muted); font-weight:400;">Recurring control drift</span></div>
+          </div>
+        </div>
+        <div style="text-align:center; font-size:18px; color:var(--orange);">←</div>
+        <div style="padding:14px 16px; border-right:1px solid var(--border);">
+          <div style="font-size:12px; font-weight:700; color:var(--orange); margin-bottom:4px;">→ SAST Rule Candidate</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.5;">A TISA control that keeps failing across deploys signals a code pattern being repeatedly introduced. Evaluate whether a SAST rule can catch the root cause statically before it ever reaches TISA.</div>
+          <div style="margin-top:6px;"><span class="pill pill-orange" style="font-size:10px;">Trigger: same TISA test fails 3+ times in 30 days</span></div>
+        </div>
+        <div style="text-align:center; font-size:18px; color:var(--orange);">←</div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:12px; font-weight:700; color:var(--yellow); margin-bottom:4px;">→ SCA Policy Tightening</div>
+          <div style="font-size:12px; color:var(--muted); line-height:1.5;">If the TISA failure traces to a dependency vulnerability being reachable, escalate the SCA finding priority and add a compensating control requirement to SCA policy.</div>
+          <div style="margin-top:6px;"><span class="pill pill-yellow" style="font-size:10px;">Confirmed reachable CVE path → auto-escalate SCA ticket to P1</span></div>
+        </div>
+      </div>
+
+      <!-- Loop 4 -->
+      <div style="display:grid; grid-template-columns: 200px 40px 3fr; align-items:center; gap:0; background:rgba(248,81,73,0.04); border:1px solid #3b1119; border-radius:10px; overflow:hidden;">
+        <div style="background:rgba(248,81,73,0.08); padding:14px 16px; border-right:1px solid #3b1119; height:100%; display:flex; align-items:center;">
+          <div>
+            <div style="font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--red); margin-bottom:4px;">Signal Source</div>
+            <div style="font-size:13px; font-weight:600;">Incident<br><span style="font-size:11px; color:var(--muted); font-weight:400;">The ultimate signal</span></div>
+          </div>
+        </div>
+        <div style="text-align:center; font-size:18px; color:var(--orange);">←</div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:12px; font-weight:700; color:var(--red); margin-bottom:8px;">→ Propagates to ALL layers simultaneously</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:8px;">
+            <div style="background:rgba(56,139,253,0.08); border-radius:6px; padding:8px; font-size:11px; color:var(--muted);"><strong style="color:var(--blue);">TAM</strong><br>New attack vector added. Mitigating controls reviewed for all similar threats.</div>
+            <div style="background:rgba(56,139,253,0.08); border-radius:6px; padding:8px; font-size:11px; color:var(--muted);"><strong style="color:var(--blue);">SAST Custom Rule</strong><br>Vulnerability class codified as static detection rule within 48h of root cause.</div>
+            <div style="background:rgba(56,139,253,0.08); border-radius:6px; padding:8px; font-size:11px; color:var(--muted);"><strong style="color:var(--blue);">SCA Policy</strong><br>If dependency involved, policy updated to block that component version range.</div>
+            <div style="background:rgba(188,140,255,0.12); border-radius:6px; padding:8px; font-size:11px; color:var(--muted);"><strong style="color:var(--purple);">TISA Regression</strong><br>Incident scenario becomes a permanent TISA test. Required within 48h of close.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="highlight highlight-orange">
+      <strong>The learning system principle:</strong> A security pipeline that only runs left→right finds today's vulnerabilities. One with closed feedback loops <em>gets harder to exploit over time</em> — each incident and runtime finding makes the static layer smarter.
+    </div>
+  </div>
+
+
+  <!-- ── SLIDE 10 : Pattern Library Architecture ── -->
+  <div class="slide" id="slide-10">
+    <div class="slide-header">
+      <div>
+        <div class="tag tag-blue">Implementation Architecture</div>
+        <h2>Who Owns What — Security Team vs. Application Team</h2>
+        <p class="slide-desc">Clear ownership split — security team builds and curates the pattern library, application teams decide what to import, extend it with service-specific tests, and run everything through the same pipeline contract.</p>
+      </div>
+      <div class="slide-number">10</div>
+    </div>
+
+    <!-- Left / Right split -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0; align-items:start;">
+
+      <!-- ══════════════════ LEFT — Security Team ══════════════════ -->
+      <div style="padding-right:22px; border-right:1px solid var(--border); display:flex; flex-direction:column; gap:10px;">
+
+        <!-- Team badge -->
+        <div style="background:rgba(188,140,255,0.07); border:1px solid var(--purple-dim); border-radius:8px; padding:9px 13px; display:flex; align-items:center; gap:9px;">
+          <span style="font-size:18px;">🔐</span>
+          <div>
+            <div style="font-size:12px; font-weight:700; color:var(--purple);">Security Team · PIT</div>
+            <div style="font-size:10px; color:var(--muted);">Owns and maintains the central pattern library</div>
+          </div>
+        </div>
+
+        <!-- Box 1 : TISA framework repo structure -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--purple); margin-bottom:9px;">🏛 TISA Framework — Repository Structure</div>
+
+          <!-- File tree -->
+          <div style="font-family:'SF Mono',monospace; font-size:9.5px; line-height:1.8; background:var(--surface2); border-radius:6px; padding:9px 11px; color:var(--muted);">
+            <span style="color:var(--text); font-weight:600;">security-abuse-pattern-library/</span><br>
+            ├── <span style="display:inline-block; background:rgba(188,140,255,0.14); border-radius:3px; padding:0 5px; color:var(--purple); font-weight:700;">patterns/</span>&nbsp;<span style="color:#3d4147; font-size:9px;">← reusable, TAM-traced</span><br>
+            │&nbsp;&nbsp;&nbsp;├── <span style="color:var(--text);">mobile_api_authorization_enforcement.yaml</span><br>
+            │&nbsp;&nbsp;&nbsp;├── <span style="color:var(--text);">mobile_token_validation.yaml</span><br>
+            │&nbsp;&nbsp;&nbsp;├── <span style="color:var(--text);">mobile_payload_tampering_validation.yaml</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span style="color:var(--muted);">duplicate_transaction_protection_DEFERRED_PHASE2.yaml</span><br>
+            ├── <span style="display:inline-block; background:rgba(63,185,80,0.10); border-radius:3px; padding:0 5px; color:var(--green); font-weight:700;">runner/</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span style="color:var(--text);">run_patterns.py</span><br>
+            ├── <span style="display:inline-block; background:rgba(227,179,65,0.10); border-radius:3px; padding:0 5px; color:var(--yellow); font-weight:700;">schema/</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span style="color:var(--text);">abuse-test-mapping-schema.json</span><br>
+            ├── <span>docs/</span><br>
+            │&nbsp;&nbsp;&nbsp;├── <span>execution-model.md</span><br>
+            │&nbsp;&nbsp;&nbsp;├── <span>pattern-intake-criteria.md</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span>onboarding-guide.md</span><br>
+            └── <span>examples/</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;└── <span>sample-abuse-test-mapping.yaml</span>
+          </div>
+
+          <!-- Folder legend -->
+          <div style="margin-top:9px; padding-top:9px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; align-items:center; gap:7px;">
+              <span style="font-family:'SF Mono',monospace; font-size:9px; color:var(--purple); font-weight:700; background:rgba(188,140,255,0.12); border-radius:3px; padding:1px 5px;">patterns/</span>
+              <span style="font-size:10px; color:var(--muted);">Reusable YAML patterns owned by PIT — TAM-traced, versioned</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:7px;">
+              <span style="font-family:'SF Mono',monospace; font-size:9px; color:var(--green); font-weight:700; background:rgba(63,185,80,0.10); border-radius:3px; padding:1px 5px;">runner/</span>
+              <span style="font-size:10px; color:var(--muted);">Platform-agnostic CLI — runs in any CI/CD</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:7px;">
+              <span style="font-family:'SF Mono',monospace; font-size:9px; color:var(--yellow); font-weight:700; background:rgba(227,179,65,0.10); border-radius:3px; padding:1px 5px;">schema/</span>
+              <span style="font-size:10px; color:var(--muted);">JSON Schema — validates every app mapping before execution</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connector -->
+        <div style="display:flex; justify-content:center; align-items:center; height:18px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div style="width:1px; height:5px; background:var(--border);"></div>
+            <div style="font-size:12px; line-height:1; color:var(--muted);">↓</div>
+          </div>
+        </div>
+
+        <!-- Box 2 : Pipeline (centrally run) -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--text); margin-bottom:9px;">⚙️ Runner — Platform-Agnostic Python CLI</div>
+          <div style="font-family:'SF Mono',monospace; font-size:9.5px; line-height:1.65; background:var(--surface2); border-radius:6px; padding:9px 11px; color:var(--muted);">
+            <span style="color:var(--green);">python</span> run_patterns.py \<br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">--patterns</span> ./patterns/ \<br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">--mapping</span> &lt;app-mapping.yaml&gt; \<br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">--schema</span> ./schema/ \<br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">--mode</span> [advisory | <span style="color:var(--red);">enforcement</span>] \<br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">--output</span> results/pit-results.json
+          </div>
+          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            <span style="background:var(--surface2); border-radius:4px; padding:2px 8px; font-size:10px; color:var(--muted);">Azure DevOps · GitHub Actions · Jenkins</span>
+            <span style="background:rgba(63,185,80,0.08); border:1px solid var(--green-dim); border-radius:4px; padding:2px 8px; font-size:10px; color:var(--green);">publishes JSON artifact</span>
+          </div>
+        </div>
+
+        <!-- Connector -->
+        <div style="display:flex; justify-content:center; align-items:center; height:18px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div style="width:1px; height:5px; background:var(--border);"></div>
+            <div style="font-size:12px; line-height:1; color:var(--muted);">↓</div>
+          </div>
+        </div>
+
+        <!-- Box 3 : Real pattern from workspace -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+            <div style="font-size:11px; font-weight:700; color:var(--text);">📄 Real Pattern — From the Library</div>
+            <span style="background:rgba(247,129,102,0.12); border-radius:4px; padding:1px 7px; font-size:9px; color:var(--orange); font-weight:700;">TAM · SAST · DAST/API</span>
+          </div>
+          <div style="font-size:10px; color:var(--muted); margin-bottom:7px; font-family:'SF Mono',monospace; opacity:0.7;">patterns/mobile_api_authorization_enforcement.yaml</div>
+          <div style="font-family:'SF Mono',monospace; font-size:9.5px; line-height:1.65; background:var(--surface2); border-radius:6px; padding:9px 11px; color:var(--muted);">
+            <span style="color:var(--purple);">pattern_id:</span> mobile_api_authorization_enforcement<br>
+            <span style="color:var(--purple);">owner:</span> Product Integrity and Testing<br>
+            <span style="color:var(--purple);">source_traceability:</span><br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">source_type:</span> [TAM, SAST, DAST/API]<br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">tam_group:</span> [Mobile, Elevation of Privilege]<br>
+            <br>
+            <span style="color:var(--purple);">required_inputs:</span> &nbsp;<span style="color:#3d4147;"># app team supplies these</span><br>
+            &nbsp;&nbsp;<span style="color:var(--green);">- base_url</span><br>
+            &nbsp;&nbsp;<span style="color:var(--green);">- acting_user_token</span> &nbsp;<span style="color:#3d4147;"># token to be denied</span><br>
+            &nbsp;&nbsp;<span style="color:var(--green);">- endpoint</span><br>
+            &nbsp;&nbsp;<span style="color:var(--green);">- expected_denial_status</span><br>
+            <br>
+            <span style="color:var(--purple);">test_logic:</span><br>
+            &nbsp;&nbsp;<span style="color:var(--purple);">request:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">method:</span> GET<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">url:</span> "<span style="color:var(--orange);">{{base_url}}</span><span style="color:var(--orange);">{{endpoint}}</span>"<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">headers:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">Authorization:</span> "Bearer <span style="color:var(--orange);">{{acting_user_token}}</span>"<br>
+            &nbsp;&nbsp;<span style="color:var(--purple);">expected:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">status_code:</span> "<span style="color:var(--orange);">{{expected_denial_status}}</span>"
+          </div>
+        </div>
+
+      </div><!-- /LEFT -->
+
+      <!-- ══════════════════ RIGHT — Application Team ══════════════════ -->
+      <div style="padding-left:22px; display:flex; flex-direction:column; gap:10px;">
+
+        <!-- Team badge -->
+        <div style="background:rgba(56,139,253,0.07); border:1px solid var(--blue-dim); border-radius:8px; padding:9px 13px; display:flex; align-items:center; gap:9px;">
+          <span style="font-size:18px;">👩‍💻</span>
+          <div>
+            <div style="font-size:12px; font-weight:700; color:var(--blue);">Application Team</div>
+            <div style="font-size:10px; color:var(--muted);">Imports patterns, extends with service-specific tests</div>
+          </div>
+        </div>
+
+        <!-- Box 1 : App repo structure -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--blue); margin-bottom:9px;">① App Repository — Security Test Folder</div>
+
+          <!-- File tree -->
+          <div style="font-family:'SF Mono',monospace; font-size:9.5px; line-height:1.8; background:var(--surface2); border-radius:6px; padding:9px 11px; color:var(--muted);">
+            <span style="color:var(--text); font-weight:600;">sample-mobile-banking-api/</span><br>
+            ├── <span>app/</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span>main.py</span><br>
+            ├── <span>tests/</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span>test_app.py</span><br>
+            ├── <span style="display:inline-block; background:rgba(56,139,253,0.14); border-radius:3px; padding:0 5px; color:var(--blue); font-weight:700;">security-tests/</span>&nbsp;<span style="color:#3d4147; font-size:9px;">← app team owns this</span><br>
+            │&nbsp;&nbsp;&nbsp;├── <span style="color:var(--text);">abuse-test-mapping.yaml</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span style="color:var(--muted);">abuse-test-mapping-intentionally-vulnerable.yaml</span><br>
+            ├── <span>azure-pipelines/</span><br>
+            │&nbsp;&nbsp;&nbsp;└── <span>azure-pipelines.yml</span><br>
+            └── <span>requirements.txt</span>
+          </div>
+
+          <!-- Patterns implemented -->
+          <div style="margin-top:9px; padding-top:9px; border-top:1px solid var(--border);">
+            <div style="font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:6px;">Patterns mapped in abuse-test-mapping.yaml</div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+              <div style="display:flex; align-items:center; gap:7px; background:var(--surface2); border-radius:5px; padding:5px 8px; border-left:2px solid var(--orange);">
+                <span style="font-size:9px; color:var(--orange); font-weight:700; white-space:nowrap; flex-shrink:0;">TAM</span>
+                <span style="font-family:'SF Mono',monospace; font-size:9px; color:var(--muted);">mobile_api_authorization_enforcement</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; background:var(--surface2); border-radius:5px; padding:5px 8px; border-left:2px solid var(--orange);">
+                <span style="font-size:9px; color:var(--orange); font-weight:700; white-space:nowrap; flex-shrink:0;">TAM</span>
+                <span style="font-family:'SF Mono',monospace; font-size:9px; color:var(--muted);">mobile_token_validation</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:7px; background:var(--surface2); border-radius:5px; padding:5px 8px; border-left:2px solid var(--orange);">
+                <span style="font-size:9px; color:var(--orange); font-weight:700; white-space:nowrap; flex-shrink:0;">TAM</span>
+                <span style="font-family:'SF Mono',monospace; font-size:9px; color:var(--muted);">mobile_payload_tampering_validation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connector -->
+        <div style="display:flex; justify-content:center; align-items:center; height:18px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div style="width:1px; height:5px; background:var(--border);"></div>
+            <div style="font-size:12px; line-height:1; color:var(--muted);">↓</div>
+          </div>
+        </div>
+
+        <!-- Box 2 : Real mapping from workspace -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--blue); margin-bottom:5px;">② Define Mapping in App Repo</div>
+          <div style="font-size:10px; color:var(--muted); margin-bottom:7px; font-family:'SF Mono',monospace; opacity:0.7;">security-tests/abuse-test-mapping.yaml</div>
+          <div style="font-family:'SF Mono',monospace; font-size:9.5px; line-height:1.65; background:var(--surface2); border-radius:6px; padding:9px 11px; color:var(--muted);">
+            <span style="color:var(--purple);">application:</span> sample-mobile-banking-api<br>
+            <span style="color:var(--purple);">environment:</span> staging<br>
+            <span style="color:var(--purple);">pattern_library:</span><br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">source:</span> security-abuse-pattern-library<br>
+            <br>
+            <span style="color:var(--purple);">base_url:</span> <span style="color:var(--green);">${BASE_URL}</span><br>
+            <span style="color:var(--purple);">auth:</span><br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">low_privilege_token:</span> <span style="color:var(--green);">${LOW_PRIVILEGE_TOKEN}</span><br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">valid_user_token:</span> &nbsp;<span style="color:var(--green);">${VALID_USER_TOKEN}</span><br>
+            <span style="color:var(--purple);">test_data:</span><br>
+            &nbsp;&nbsp;<span style="color:var(--blue);">protected_account_id:</span> <span style="color:var(--green);">${PROTECTED_ACCOUNT_ID}</span><br>
+            <br>
+            <span style="color:var(--purple);">tests:</span><br>
+            &nbsp;&nbsp;<span style="color:#3d4147;">- pattern: mobile_api_authorization_enforcement</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">name:</span> low_priv_cannot_access_account<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">execution_mode:</span> <span style="color:var(--red);">enforcement</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">inputs:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">acting_user_token:</span> <span style="color:var(--orange);">${LOW_PRIVILEGE_TOKEN}</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">endpoint:</span> /api/mobile/accounts/<span style="color:var(--orange);">${PROTECTED_ACCOUNT_ID}</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">expected_denial_status:</span> <span style="color:var(--red);">403</span>
+          </div>
+          <div style="margin-top:7px; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <div style="font-size:10px; color:var(--muted); padding:5px 8px; background:rgba(63,185,80,0.06); border-radius:5px; border-left:2px solid var(--green);">
+              <code style="color:var(--green); font-size:9px;">${ENV_VAR}</code> — CI secrets injected at runtime
+            </div>
+            <div style="font-size:10px; color:var(--muted); padding:5px 8px; background:rgba(247,129,102,0.06); border-radius:5px; border-left:2px solid var(--orange);">
+              <code style="color:var(--orange); font-size:9px;">{{template}}</code> — resolved by runner into URL/headers
+            </div>
+          </div>
+        </div>
+
+        <!-- Connector -->
+        <div style="display:flex; justify-content:center; align-items:center; height:18px;">
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div style="width:1px; height:5px; background:var(--border);"></div>
+            <div style="font-size:12px; line-height:1; color:var(--muted);">↓</div>
+          </div>
+        </div>
+
+        <!-- Box 3 : Real pipeline from workspace -->
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--blue); margin-bottom:9px;">③ Runs in Their CI/CD Pipeline</div>
+          <div style="font-family:'SF Mono',monospace; font-size:9.5px; line-height:1.65; background:var(--surface2); border-radius:6px; padding:9px 11px; color:var(--muted);">
+            <span style="color:var(--yellow);">- script:</span> |<br>
+            &nbsp;&nbsp;<span style="color:var(--green);">python</span> run_patterns.py \<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">--mapping</span> security-tests/abuse-test-mapping.yaml \<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">--patterns</span> ../security-abuse-pattern-library/patterns \<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">--schema</span> ../security-abuse-pattern-library/schema \<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">--mode</span> <span style="color:var(--red);">enforcement</span> \<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--blue);">--output</span> security-results/pit-results.json<br>
+            &nbsp;&nbsp;<span style="color:var(--yellow);">displayName:</span> Run PIT Patterns<br>
+            &nbsp;&nbsp;<span style="color:var(--yellow);">env:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--green);">BASE_URL:</span> $(BASE_URL)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--green);">LOW_PRIVILEGE_TOKEN:</span> $(LOW_PRIVILEGE_TOKEN)<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--green);">PROTECTED_ACCOUNT_ID:</span> $(PROTECTED_ACCOUNT_ID)
+          </div>
+          <div style="margin-top:8px; background:rgba(63,185,80,0.07); border:1px solid var(--green-dim); border-radius:6px; padding:8px 10px; font-size:11px; color:var(--muted); line-height:1.4;">
+            🟢 <strong style="color:var(--green);">This already runs today</strong> — same runner, same patterns, same result artifact published to pipeline. Start in <code style="color:var(--yellow); font-size:9.5px;">--mode advisory</code>, promote to <code style="color:var(--red); font-size:9.5px;">enforcement</code> when confident.
+          </div>
+        </div>
+
+      </div><!-- /RIGHT -->
+
+    </div><!-- /split grid -->
+
+  </div>
+
+</div><!-- end slides-container -->
+
+<div class="kbd-hint"><kbd>←</kbd> <kbd>→</kbd> to navigate</div>
+
+<script>
+  const TOTAL = 10;
+  let current = 1;
+
+  function go(dir) {
+    const next = Math.min(Math.max(current + dir, 1), TOTAL);
+    if (next === current) return;
+    document.getElementById(`slide-${current}`).classList.remove('active');
+    current = next;
+    document.getElementById(`slide-${current}`).classList.add('active');
+    update();
+  }
+
+  function goTo(n) {
+    document.getElementById(`slide-${current}`).classList.remove('active');
+    current = n;
+    document.getElementById(`slide-${current}`).classList.add('active');
+    update();
+  }
+
+  function update() {
+    document.getElementById('counter').textContent = `${current} / ${TOTAL}`;
+    document.getElementById('prev').disabled = current === 1;
+    document.getElementById('next').disabled = current === TOTAL;
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('active', i + 1 === current);
+    });
+  }
+
+  // Build dots
+  const dotsEl = document.getElementById('dots');
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 1 ? ' active' : '');
+    d.title = `Slide ${i}`;
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  }
+
+  // Keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(-1);
+  });
+
+  update();
+</script>
+</body>
+</html>
