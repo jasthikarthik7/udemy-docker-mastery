@@ -20,6 +20,7 @@ body { background: #080C12; font-family: 'IBM Plex Sans', sans-serif; }
 .tab-btn:hover { opacity: 0.85; }
 .gap-card { transition: transform 0.2s ease; }
 .gap-card:hover { transform: translateX(4px); }
+.slsa-req:hover { background: #0D1A2E !important; }
 @keyframes slideIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
 .animate-in { animation: slideIn 0.25s ease forwards; }
 </style>
@@ -30,95 +31,236 @@ body { background: #080C12; font-family: 'IBM Plex Sans', sans-serif; }
 const { useState } = React;
 
 const steps = [
-  { id:1, icon:"📋", title:"Request & Approval", status:"controlled",
-    details:["Application teams request via ServiceNow catalog intake workflow","Approval from application team manager","Security approval may be requested case-by-case","Unauthorized/personal artifacts are NOT allowed"],
+  { id:1,  icon:"📋", title:"Request & Approval",                  status:"controlled",
+    details:["Teams request via ServiceNow catalog intake workflow","Approval from application team manager","Security approval may be requested case-by-case","Unauthorized/personal artifacts are NOT allowed"],
     control:"Approval gate enforced before any artifact enters the environment" },
-  { id:2, icon:"🌐", title:"Source of Dependencies", status:"controlled",
+  { id:2,  icon:"🌐", title:"Source of Dependencies",              status:"controlled",
     details:["Predefined trusted remote repositories","Open-source ecosystems (Maven, NPM, PyPI, etc.)","Vendor-provided artifacts via configured upstream or manual upload","All proxied into Artifactory via remote repositories"],
     control:"Sources restricted to approved trusted repositories only" },
-  { id:3, icon:"🔍", title:"Pre-Entry Vetting (Curation)", status:"partial",
+  { id:3,  icon:"🔍", title:"Pre-Entry Vetting (Curation)",        status:"partial",
     details:["JFrog Curation evaluates before entering NFCU environment","Uses metadata + external intelligence (not NFCU-controlled)","Blocks artifacts based on configured security policies","Known vulnerable artifacts may be blocked before entry"],
     control:"Curation logic is externally managed — not directly controlled by NFCU" },
-  { id:4, icon:"🔄", title:"Ingestion via DMZ → Internal", status:"controlled",
-    details:["Dependencies staged externally in DMZ first","Promoted into internal Artifactory repositories","Creates a logical trust boundary","DMZ separation enforces external/internal split"],
+  { id:4,  icon:"🔎", title:"Provenance Verification",             status:"gap",
+    details:["Verify artifact origin and supply chain integrity","Cross-reference against known trusted publishers","Validate against public provenance databases (Sigstore, etc.)","Detect dependency confusion and typosquatting attacks"],
+    control:"New: cryptographic verification of artifact origin before entry" },
+  { id:5,  icon:"🌳", title:"Transitive Dependency Analysis",      status:"gap",
+    details:["Analyze full dependency tree including transitive dependencies","Identify hidden vulnerabilities in sub-dependencies","Map complete dependency graph for each artifact","Flag unexpected or deeply nested risky packages"],
+    control:"New: full tree visibility — not just direct dependencies" },
+  { id:6,  icon:"📌", title:"Dependency Pinning / Hash Locking",   status:"gap",
+    details:["Lock dependencies to specific versions with hash verification","Prevent version drift and dependency confusion attacks","SHA-256/512 hash verified at every ingestion event","Reject artifacts whose hash does not match pinned record"],
+    control:"New: immutable version locking prevents supply chain substitution" },
+  { id:7,  icon:"🔄", title:"Ingestion via DMZ → Internal",        status:"controlled",
+    details:["Dependencies staged externally in DMZ first","Promoted into internal Artifactory repositories","Creates a logical trust boundary","DMZ separation enforces external/internal network split"],
     control:"Trust boundary separates external sources from internal repositories" },
-  { id:5, icon:"🛡️", title:"Security Scanning (JFrog Xray)", status:"partial",
-    details:["Scans using NVD + VulnDB vulnerability databases","Scanning at ingestion AND continuously over time","Only CRITICAL (CVSS-based) vulnerabilities are blocked","High/Medium severity vulnerabilities are NOT enforced"],
-    control:"⚠️ Enforcement gap: High/Medium vulns pass through unchecked" },
-  { id:6, icon:"📦", title:"Artifact Availability to Developers", status:"gap",
-    details:["Approved artifacts via local/virtual repositories","Served via internal Artifactory endpoints","GAP: Some teams bypass Artifactory entirely","Direct internet pulls are not controlled or monitored"],
-    control:"⚠️ Not all teams route through Artifactory — enforcement is incomplete" },
-  { id:7, icon:"⚡", title:"Post-Ingestion Risk Handling", status:"gap",
-    details:["Xray detection → auto-block (policy-dependent)","No Xray detection → manual intervention required","Already-downloaded artifacts may linger via caching","Caching is a residual risk after blocking is applied"],
-    control:"⚠️ Cached artifacts remain accessible even after a block is applied" },
-  { id:8, icon:"🚨", title:"Incident Response / Blocking", status:"partial",
-    details:["Add to exclusion list, block access, remove visibility","Triggers: SIR/CSOC, Artifactory team, external findings","Blocking and communication are largely manual","No automated notification workflow exists"],
-    control:"⚠️ IR is manual — automation needed for blocking and notifications" },
-  { id:9, icon:"📄", title:"SBOM Handling", status:"gap",
-    details:["❌ No native SBOM for third-party deps in JFrog","✅ SBOMs for internal apps via Black Duck pipelines","✅ Stored in Artifactory for supported pipelines","GAP: No SBOM at third-party ingestion level"],
-    control:"⚠️ Supply chain bill of materials is incomplete for third-party deps" },
-  { id:10, icon:"✍️", title:"Signature & License Validation", status:"gap",
-    details:["Capability exists: signature validation + license checks","❗ Currently NOT enforced for blocking","Reason: Prior enforcement caused usability issues","License violations and signature failures pass through"],
-    control:"⚠️ Enforcement disabled — license and integrity risks not validated" },
+  { id:8,  icon:"🛡️", title:"Security Scanning (Xray)",           status:"partial",
+    details:["Scans using NVD + VulnDB vulnerability databases","Scanning at ingestion AND continuously over time","Only CRITICAL (CVSS-based) vulnerabilities are currently blocked","High/Medium severity vulnerabilities are NOT enforced"],
+    control:"⚠️ Enforcement limited to Critical CVEs — policy scope must expand" },
+  { id:9,  icon:"📄", title:"SBOM Generation & Attestation",       status:"gap",
+    details:["Generate SBOM at ingestion for all third-party dependencies","Attest SBOMs with cryptographic signatures (CycloneDX / SPDX)","Store attestations in Artifactory for all pipelines","Closes current gap: no native SBOM for third-party deps in JFrog"],
+    control:"New: full bill of materials coverage at ingestion level" },
+  { id:10, icon:"✍️", title:"Signature & License Validation",      status:"gap_enforce",
+    details:["Capability exists: signature validation + license checks","Currently NOT enforced for blocking (disabled due to usability issues)","Must be re-enabled with refined policy to avoid false positives","License violations and signature failures currently pass through"],
+    control:"Gap → Enforce: re-enable with tuned policy; license risk is unacceptable" },
+  { id:11, icon:"🔏", title:"Provenance Generation",               status:"gap",
+    details:["Generate SLSA provenance attestation records for ingested artifacts","Link artifacts to verified build systems and source repositories","Publish provenance alongside artifact in Artifactory","Enables downstream consumers to verify artifact lineage"],
+    control:"New: SLSA provenance attestation for all ingested artifacts" },
+  { id:12, icon:"🚦", title:"Policy Enforcement Gate",             status:"gap",
+    details:["Centralized policy decision point aggregating all signal sources","Block based on combined security, license, provenance, and hash signals","Automated enforcement replaces ad-hoc manual checks","Configurable per-team and per-environment policy profiles"],
+    control:"New: single enforcement gate replacing fragmented controls" },
+  { id:13, icon:"📦", title:"Artifact Availability to Developers", status:"gap_control",
+    details:["Approved artifacts served via local/virtual repositories","Some teams currently bypass Artifactory via direct internet pulls","Goal: mandate Artifactory routing for all teams via network policy","Enforce through developer tooling and pipeline configuration"],
+    control:"Gap → Controlled: close bypass gap; all teams must route through Artifactory" },
+  { id:14, icon:"📒", title:"Immutable Audit Trail",               status:"gap",
+    details:["Immutable log of every artifact ingestion and access event","Record who pulled what, when, and from which pipeline","Support compliance audits and forensic investigation","Integrate with SIEM / centralized logging infrastructure"],
+    control:"New: full traceability of artifact usage across the enterprise" },
+  { id:15, icon:"⚡", title:"Post-Ingestion Risk Handling",        status:"gap_enforce",
+    details:["If Xray detects new CVE: artifact should be auto-blocked immediately","Currently: no Xray detection requires manual intervention only","Already-downloaded artifacts persist in developer caches post-block","Must implement cache invalidation and automated block propagation"],
+    control:"Gap → Enforce: automate blocking and cache-bust on new vulnerability disclosure" },
+  { id:16, icon:"🔁", title:"Continuous Re-Scanning",             status:"gap",
+    details:["Scheduled re-evaluation of all artifacts stored in Artifactory","Auto-block artifacts when new CVEs are published against them","Covers zero-day and retroactive vulnerability scenarios","Configurable scan cadence and severity thresholds"],
+    control:"New: continuous re-evaluation required — no artifact is safe forever" },
+  { id:17, icon:"🚨", title:"Incident Response / Blocking",       status:"partial",
+    details:["Security/platform team can add to exclusion list, block access, remove visibility","Triggers: SIR/CSOC, Artifactory team, external findings","Blocking and communication are largely manual today","No automated workflow or stakeholder notification pipeline"],
+    control:"⚠️ Must automate: manual IR is too slow for modern zero-day response" },
+  { id:18, icon:"📣", title:"Developer Notification & Remediation",status:"gap",
+    details:["Automated alerts to affected development teams on block events","Remediation guidance: upgrade path, alternative packages, timelines","Integration with ServiceNow / Jira for remediation ticketing","SLA-driven remediation tracking and escalation"],
+    control:"New: close the communication gap between security and developers" },
+  { id:19, icon:"🗓️", title:"Periodic Review & Lifecycle Expiry", status:"gap",
+    details:["Scheduled review of artifact inventory for end-of-life packages","Auto-expire unused or unmaintained dependencies after defined period","Governance reporting on dependency age, usage, and risk posture","Integrate with change management for deprecation workflows"],
+    control:"New: proactive lifecycle governance prevents stale dependency risk" },
 ];
 
 const gaps = [
-  { id:1, icon:"🔓", title:"Enforcement Gap",          desc:"Some teams bypass Artifactory entirely via direct internet access. No controls, scanning, or curation is applied to those dependency pulls." },
-  { id:2, icon:"⚠️", title:"Weak Policy Enforcement",  desc:"Only Critical vulnerabilities are blocked. High/Medium vulns, license violations, and signature failures all pass through without enforcement." },
-  { id:3, icon:"🔧", title:"Manual IR Processes",       desc:"Incident response blocking and communication to affected teams is largely manual with no automated workflow." },
-  { id:4, icon:"👁️", title:"No Enterprise Visibility",  desc:"No mapping from artifact → application. No complete inventory or coverage metrics exist across the enterprise." },
-  { id:5, icon:"📋", title:"SBOM Gaps",                 desc:"No SBOMs generated for third-party artifacts at the ingestion level — a significant gap for compliance and incident response." },
+  { id:1,  icon:"🔓", title:"Enforcement Gap",                     desc:"Some teams bypass Artifactory entirely via direct internet. No controls, scanning, or curation applied to those pulls." },
+  { id:2,  icon:"⚠️", title:"Weak Policy Enforcement",             desc:"Only Critical CVEs blocked. High/Medium vulns, license violations, and signature failures all pass through uncontrolled." },
+  { id:3,  icon:"🔧", title:"Manual IR Processes",                 desc:"Incident response blocking and developer communication is largely manual with no automated workflow." },
+  { id:4,  icon:"👁️", title:"No Enterprise Visibility",            desc:"No artifact → application mapping. No complete inventory or coverage metrics across the enterprise." },
+  { id:5,  icon:"📋", title:"SBOM Gaps",                           desc:"No SBOMs for third-party artifacts at ingestion level — major gap for compliance and blast radius assessment." },
+  { id:6,  icon:"🔎", title:"No Provenance Verification",          desc:"Artifact origin is not cryptographically verified. Dependency confusion and typosquatting attacks are not detected." },
+  { id:7,  icon:"🌳", title:"No Transitive Dependency Visibility",  desc:"Only direct dependencies are analyzed. Vulnerabilities in transitive (indirect) dependencies are not systematically tracked." },
+  { id:8,  icon:"📌", title:"No Dependency Pinning",               desc:"Dependencies are not hash-locked. Version drift and supply chain substitution attacks are possible." },
+  { id:9,  icon:"📣", title:"No Developer Remediation Workflow",   desc:"When artifacts are blocked, there is no automated notification or remediation guidance sent to affected development teams." },
+  { id:10, icon:"🗓️", title:"No Lifecycle Governance",            desc:"No periodic review or expiry process for aging, unused, or end-of-life dependencies stored in Artifactory." },
 ];
 
 const matrix = [
-  { label:"Critical Vulnerability Blocking",      status:"✅  Enforced",      c:"#2A9D5C", bg:"#0D2F1A", b:"#1E6B3A" },
-  { label:"High / Medium Vulnerability Blocking", status:"❌  Not Enforced",   c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
-  { label:"License Violation Blocking",           status:"❌  Not Enforced",   c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
-  { label:"Signature Validation Blocking",        status:"❌  Not Enforced",   c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
-  { label:"SBOM at Third-Party Ingestion",        status:"❌  No Coverage",    c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
-  { label:"Artifactory Routing (All Teams)",      status:"⚠️  Partial",        c:"#F5A623", bg:"#2B1E00", b:"#7A5200" },
-  { label:"Automated IR & Blocking",              status:"⚠️  Partial",        c:"#F5A623", bg:"#2B1E00", b:"#7A5200" },
-  { label:"Enterprise Artifact Visibility",       status:"❌  No Coverage",    c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Critical Vulnerability Blocking",      status:"✅  Enforced",          c:"#2A9D5C", bg:"#0D2F1A", b:"#1E6B3A" },
+  { label:"High / Medium Vulnerability Blocking", status:"❌  Not Enforced",       c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"License Violation Blocking",           status:"⚠️  Gap → Enforce",      c:"#F5A623", bg:"#2B1E00", b:"#7A5200" },
+  { label:"Signature Validation Blocking",        status:"⚠️  Gap → Enforce",      c:"#F5A623", bg:"#2B1E00", b:"#7A5200" },
+  { label:"SBOM at Third-Party Ingestion",        status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Provenance Verification",              status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Transitive Dependency Analysis",       status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Dependency Pinning / Hash Locking",    status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Artifactory Routing (All Teams)",      status:"⚠️  Gap → Controlled",   c:"#F5A623", bg:"#2B1E00", b:"#7A5200" },
+  { label:"Automated IR & Blocking",              status:"⚠️  Partial",            c:"#F5A623", bg:"#2B1E00", b:"#7A5200" },
+  { label:"Developer Notification / Remediation", status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Immutable Audit Trail",                status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Periodic Review & Lifecycle Expiry",   status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Enterprise Artifact Visibility",       status:"❌  No Coverage",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+  { label:"Continuous Re-Scanning",               status:"🔴  Gap",        c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+];
+
+// SLSA data
+const slsaLevels = [
+  {
+    level: "L1",
+    name: "SLSA Level 1",
+    subtitle: "Provenance Exists",
+    color: "#4A9EFF",
+    bg: "#0D1A2E",
+    border: "#1A3A6A",
+    description: "The build process is documented and provenance is generated, even if unsigned. Basic traceability exists.",
+    currentState: "partial",
+    currentNote: "NFCU has basic intake controls and some scanning. No provenance is generated. SBOM coverage is incomplete. Estimated: touching L1 but not fully satisfied.",
+    requirements: [
+      { req:"Scripted/automated build or intake process",        stepIds:[1,2],    status:"met",     note:"ServiceNow workflow + Artifactory remote repos in place" },
+      { req:"Artifacts stored in a versioned repository",        stepIds:[2,7],    status:"met",     note:"Artifactory provides versioned storage via DMZ ingestion" },
+      { req:"Provenance generated (unsigned acceptable at L1)",  stepIds:[11],     status:"missing", note:"Step 11 (Provenance Generation) not yet implemented" },
+      { req:"SBOM produced for ingested artifacts",              stepIds:[9],      status:"missing", note:"Step 9 (SBOM Generation) not yet implemented for 3rd-party" },
+      { req:"Basic vulnerability screening before ingestion",    stepIds:[3,8],    status:"partial", note:"Curation + Xray exist but enforcement is incomplete" },
+    ],
+    addToReach: [
+      { stepId:9,  text:"Implement SBOM Generation & Attestation (Step 9)" },
+      { stepId:11, text:"Implement Provenance Generation (Step 11)" },
+      { stepId:8,  text:"Expand Xray scanning to cover High/Medium CVEs (Step 8)" },
+    ]
+  },
+  {
+    level: "L2",
+    name: "SLSA Level 2",
+    subtitle: "Hosted + Signed Provenance",
+    color: "#A78BFA",
+    bg: "#120A20",
+    border: "#3A1A6A",
+    description: "Provenance is signed by a trusted build/intake service. Artifacts are tamper-resistant. Source and builder are tracked.",
+    currentState: "missing",
+    currentNote: "NFCU does not yet sign provenance or enforce tamper-resistance across all artifact flows. Significant gaps remain.",
+    requirements: [
+      { req:"Signed provenance (by the intake/build service)",   stepIds:[11],     status:"missing", note:"Step 11 not implemented; no signed attestation today" },
+      { req:"Hosted source control with access controls",        stepIds:[2],      status:"met",     note:"Artifactory with access controls satisfies hosting requirement" },
+      { req:"Tamper-resistant artifact storage",                 stepIds:[6,7],    status:"partial", note:"DMZ boundary exists; hash locking (Step 6) not yet in place" },
+      { req:"Provenance names the build/intake service",         stepIds:[11,14],  status:"missing", note:"Requires provenance gen + audit trail linking artifact to pipeline" },
+      { req:"Signature and license validation enforced",         stepIds:[10],     status:"partial", note:"Step 10 capability exists but enforcement is disabled" },
+      { req:"Dependency pinning / hash verification",            stepIds:[6],      status:"missing", note:"Step 6 (Hash Locking) not yet implemented" },
+    ],
+    addToReach: [
+      { stepId:6,  text:"Implement Dependency Pinning / Hash Locking (Step 6)" },
+      { stepId:10, text:"Re-enable Signature & License Validation enforcement (Step 10)" },
+      { stepId:11, text:"Generate and sign SLSA provenance records (Step 11)" },
+      { stepId:12, text:"Deploy unified Policy Enforcement Gate (Step 12)" },
+      { stepId:14, text:"Implement Immutable Audit Trail (Step 14)" },
+    ]
+  },
+  {
+    level: "L3",
+    name: "SLSA Level 3",
+    subtitle: "Hardened + Non-Falsifiable",
+    color: "#2A9D5C",
+    bg: "#0A1A10",
+    border: "#1A4A2A",
+    description: "The intake platform itself is hardened. Provenance is non-falsifiable and verified end-to-end. All dependencies are accounted for.",
+    currentState: "missing",
+    currentNote: "NFCU is far from L3. Requires completing L1 and L2 first, then adding continuous verification, transitive analysis, and platform hardening.",
+    requirements: [
+      { req:"Hardened, isolated intake environment",             stepIds:[7],      status:"partial", note:"DMZ boundary is a step in this direction but not fully hardened" },
+      { req:"Non-falsifiable provenance (infra-signed)",         stepIds:[4,11],   status:"missing", note:"Requires provenance verification + generation both implemented" },
+      { req:"All transitive dependencies tracked and scanned",   stepIds:[5],      status:"missing", note:"Step 5 (Transitive Dep Analysis) not yet implemented" },
+      { req:"Verified source integrity (provenance verification)",stepIds:[4],     status:"missing", note:"Step 4 (Provenance Verification) not yet implemented" },
+      { req:"Continuous re-scanning of artifact inventory",      stepIds:[16],     status:"missing", note:"Step 16 (Continuous Re-Scanning) not yet implemented" },
+      { req:"Comprehensive audit trail + enterprise visibility",  stepIds:[13,14],  status:"missing", note:"Audit trail (Step 14) not implemented; routing gap (Step 13) open" },
+    ],
+    addToReach: [
+      { stepId:4,  text:"Implement Provenance Verification at pre-entry (Step 4)" },
+      { stepId:5,  text:"Implement Transitive Dependency Analysis (Step 5)" },
+      { stepId:13, text:"Close Artifactory routing gap — mandate for all teams (Step 13)" },
+      { stepId:15, text:"Automate Post-Ingestion Risk Handling (Step 15)" },
+      { stepId:16, text:"Implement Continuous Re-Scanning (Step 16)" },
+      { stepId:18, text:"Implement Developer Notification & Remediation (Step 18)" },
+      { stepId:19, text:"Implement Periodic Review & Lifecycle Expiry (Step 19)" },
+    ]
+  }
 ];
 
 const sc = {
-  controlled:{ bg:"#0D2F1A", border:"#1E6B3A", badge:"#2A9D5C", label:"Controlled" },
-  partial:   { bg:"#2B1E00", border:"#7A5200", badge:"#F5A623", label:"Partial" },
-  gap:       { bg:"#2B0A0A", border:"#7A1E1E", badge:"#E05C5C", label:"Gap" },
+  controlled:   { bg:"#0D2F1A", border:"#1E6B3A", badge:"#2A9D5C", label:"Controlled" },
+  partial:      { bg:"#2B1E00", border:"#7A5200", badge:"#F5A623", label:"Partial" },
+  gap_enforce:  { bg:"#2B1500", border:"#7A4000", badge:"#FF8C42", label:"Gap → Enforce" },
+  gap_control:  { bg:"#1A2000", border:"#4A6000", badge:"#A0C040", label:"Gap → Controlled" },
+  gap:          { bg:"#2B0A0A", border:"#7A1E1E", badge:"#E05C5C", label:"Gap" },
 };
 
+const reqStatus = {
+  met:     { c:"#2A9D5C", bg:"#0D2F1A", b:"#1E6B3A", label:"✅  Met" },
+  partial: { c:"#F5A623", bg:"#2B1E00", b:"#7A5200", label:"⚠️  Partial" },
+  missing: { c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E", label:"❌  Missing" },
+};
+
+function StepPill({ id }) {
+  const step = steps.find(s => s.id === id);
+  if (!step) return null;
+  return (
+    <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"1px 7px",borderRadius:3,background:"#0D1520",border:"1px solid #1A3A5A",fontSize:9,color:"#6A9ABF",fontFamily:"'IBM Plex Mono'",margin:"1px 2px",whiteSpace:"nowrap"}}>
+      {step.icon} {String(id).padStart(2,"0")} · {step.title}
+    </span>
+  );
+}
+
 function App() {
-  const [active, setActive] = useState(null);
-  const [view, setView]     = useState("diagram");
+  const [active, setActive]         = useState(null);
+  const [view, setView]             = useState("diagram");
+  const [slsaExpanded, setSlsaExp]  = useState({ L1:true, L2:false, L3:false });
+
+  const toggleSlsa = (lv) => setSlsaExp(p => ({ ...p, [lv]: !p[lv] }));
 
   return (
     <div style={{fontFamily:"'IBM Plex Mono',monospace",background:"#080C12",minHeight:"100vh",color:"#8AAAC0"}}>
 
       {/* ── HEADER ── */}
-      <div style={{background:"linear-gradient(135deg,#0D1A2E,#0A2040)",borderBottom:"1px solid #1A3A60",padding:"28px 32px 20px"}}>
+      <div style={{background:"linear-gradient(135deg,#0D1A2E,#0A2040)",borderBottom:"1px solid #1A3A60",padding:"24px 32px 18px"}}>
         <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
           <div>
-            <div style={{fontSize:10,letterSpacing:3,color:"#4A9EFF",marginBottom:6}}>SUPPLY CHAIN SECURITY // CURRENT STATE</div>
-            <h1 style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"clamp(16px,2.5vw,24px)",fontWeight:700,color:"#E8F4FF",margin:0}}>
+            <div style={{fontSize:10,letterSpacing:3,color:"#4A9EFF",marginBottom:5}}>SUPPLY CHAIN SECURITY // TARGET STATE</div>
+            <h1 style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:"clamp(15px,2.5vw,23px)",fontWeight:700,color:"#E8F4FF",margin:0}}>
               NFCU Artifactory — Third-Party Dependency Lifecycle
             </h1>
-            <div style={{marginTop:8,display:"flex",gap:16,flexWrap:"wrap"}}>
-              {[["#2A9D5C","Controlled"],["#F5A623","Partial Coverage"],["#E05C5C","Gap / Risk"]].map(([c,l]) => (
-                <span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:"#8AAAC0"}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:c,display:"inline-block"}}/>
+            <div style={{marginTop:7,display:"flex",gap:14,flexWrap:"wrap"}}>
+              {[["#2A9D5C","Controlled"],["#F5A623","Partial"],["#FF8C42","Gap → Enforce"],["#A0C040","Gap → Controlled"],["#E05C5C","Gap (Not Implemented)"]].map(([c,l]) => (
+                <span key={l} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"#8AAAC0"}}>
+                  <span style={{width:7,height:7,borderRadius:"50%",background:c,display:"inline-block"}}/>
                   {l}
                 </span>
               ))}
             </div>
           </div>
-          <div style={{display:"flex",gap:8}}>
-            {["diagram","gaps","summary"].map(v => (
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            {["diagram","gaps","summary","slsa"].map(v => (
               <button key={v} className="tab-btn" onClick={() => { setView(v); setActive(null); }} style={{
-                padding:"8px 16px",borderRadius:6,fontSize:11,letterSpacing:1,textTransform:"uppercase",
+                padding:"7px 14px",borderRadius:6,fontSize:11,letterSpacing:1,textTransform:"uppercase",
                 background:view===v?"#1A3D6B":"transparent",
                 color:view===v?"#4A9EFF":"#5A7A9A",
                 border:`1px solid ${view===v?"#2A5DA0":"#1A3A60"}`,
-              }}>{v}</button>
+              }}>{v === "slsa" ? "SLSA" : v}</button>
             ))}
           </div>
         </div>
@@ -128,35 +270,35 @@ function App() {
 
         {/* ── DIAGRAM ── */}
         {view==="diagram" && (
-          <div className="animate-in" style={{display:"grid",gridTemplateColumns:active?"1fr 340px":"1fr",gap:20}}>
+          <div className="animate-in" style={{display:"grid",gridTemplateColumns:active?"1fr 360px":"1fr",gap:20,alignItems:"start"}}>
             <div>
-              <div style={{fontSize:11,color:"#4A7A9A",letterSpacing:2,marginBottom:16}}>END-TO-END LIFECYCLE FLOW — click any step to expand</div>
+              <div style={{fontSize:11,color:"#4A7A9A",letterSpacing:2,marginBottom:16}}>19-STEP LIFECYCLE FLOW — click any step to expand</div>
               <div style={{display:"flex",flexDirection:"column"}}>
-                {steps.map((step,idx) => {
-                  const s = sc[step.status];
-                  const on = active?.id===step.id;
+                {steps.map((step, idx) => {
+                  const s  = sc[step.status];
+                  const on = active?.id === step.id;
                   return (
                     <div key={step.id}>
-                      <div className="step-card" onClick={() => setActive(on?null:step)} style={{
+                      <div className="step-card" onClick={() => setActive(on ? null : step)} style={{
                         background:on?s.bg:"#0D1520",border:`1px solid ${on?s.border:"#1A2E44"}`,
-                        borderLeft:`3px solid ${s.badge}`,borderRadius:8,padding:"12px 16px",
-                        display:"flex",alignItems:"center",gap:12,
+                        borderLeft:`3px solid ${s.badge}`,borderRadius:8,padding:"10px 14px",
+                        display:"flex",alignItems:"center",gap:10,
                       }}>
-                        <div style={{width:28,height:28,borderRadius:6,background:"#0A1828",border:`1px solid ${s.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,flexShrink:0}}>
+                        <div style={{width:26,height:26,borderRadius:5,background:"#0A1828",border:`1px solid ${s.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,flexShrink:0}}>
                           {step.icon}
                         </div>
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:"flex",alignItems:"center",gap:8}}>
-                            <span style={{fontSize:10,color:"#3A6A8A"}}>{String(step.id).padStart(2,"0")}</span>
-                            <span style={{fontSize:13,fontWeight:600,color:on?"#E8F4FF":"#A0BDD4",fontFamily:"'IBM Plex Sans',sans-serif"}}>{step.title}</span>
-                            <span style={{marginLeft:"auto",fontSize:9,letterSpacing:1,padding:"2px 7px",borderRadius:3,background:s.bg,border:`1px solid ${s.border}`,color:s.badge,flexShrink:0}}>
+                          <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+                            <span style={{fontSize:9,color:"#3A6A8A",fontFamily:"'IBM Plex Mono'",flexShrink:0}}>{String(step.id).padStart(2,"0")}</span>
+                            <span style={{fontSize:12,fontWeight:600,color:on?"#E8F4FF":"#A0BDD4",fontFamily:"'IBM Plex Sans',sans-serif"}}>{step.title}</span>
+                            <span style={{marginLeft:"auto",fontSize:9,letterSpacing:0.5,padding:"1px 6px",borderRadius:3,background:s.bg,border:`1px solid ${s.border}`,color:s.badge,flexShrink:0,fontFamily:"'IBM Plex Mono'"}}>
                               {s.label.toUpperCase()}
                             </span>
                           </div>
-                          {!on && <div style={{fontSize:11,color:"#4A6A80",marginTop:3,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{step.details[0]}</div>}
+                          {!on && <div style={{fontSize:10,color:"#4A6A80",marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{step.details[0]}</div>}
                         </div>
                       </div>
-                      {idx<steps.length-1 && <div style={{color:"#1E4A7A",fontSize:18,textAlign:"center",margin:"2px 0"}}>↓</div>}
+                      {idx < steps.length-1 && <div style={{color:"#1E4A7A",fontSize:14,textAlign:"center",lineHeight:"16px",margin:"1px 0"}}>↓</div>}
                     </div>
                   );
                 })}
@@ -164,14 +306,17 @@ function App() {
             </div>
 
             {active && (
-              <div className="animate-in" style={{background:"#0D1520",border:`1px solid ${sc[active.status].border}`,borderRadius:10,padding:20,alignSelf:"start",position:"sticky",top:20}}>
+              <div className="animate-in" style={{background:"#0D1520",border:`1px solid ${sc[active.status].border}`,borderRadius:10,padding:20,position:"sticky",top:20}}>
                 <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
                   <span style={{fontSize:22}}>{active.icon}</span>
-                  <div>
+                  <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:9,color:"#4A7A9A",letterSpacing:2}}>STEP {String(active.id).padStart(2,"0")}</div>
-                    <div style={{fontSize:14,fontWeight:700,color:"#E8F4FF",fontFamily:"'IBM Plex Sans',sans-serif"}}>{active.title}</div>
+                    <div style={{fontSize:13,fontWeight:700,color:"#E8F4FF",fontFamily:"'IBM Plex Sans',sans-serif",lineHeight:1.3}}>{active.title}</div>
                   </div>
-                  <button onClick={() => setActive(null)} style={{marginLeft:"auto",background:"none",border:"none",color:"#4A6A80",cursor:"pointer",fontSize:20,lineHeight:1}}>×</button>
+                  <button onClick={() => setActive(null)} style={{background:"none",border:"none",color:"#4A6A80",cursor:"pointer",fontSize:20,lineHeight:1,flexShrink:0}}>×</button>
+                </div>
+                <div style={{display:"inline-block",fontSize:9,letterSpacing:1,padding:"3px 8px",borderRadius:3,background:sc[active.status].bg,border:`1px solid ${sc[active.status].border}`,color:sc[active.status].badge,fontFamily:"'IBM Plex Mono'",marginBottom:14}}>
+                  {sc[active.status].label.toUpperCase()}
                 </div>
                 <div style={{marginBottom:14}}>
                   <div style={{fontSize:9,color:"#4A9EFF",letterSpacing:2,marginBottom:8}}>DETAILS</div>
@@ -191,29 +336,28 @@ function App() {
         {/* ── GAPS ── */}
         {view==="gaps" && (
           <div className="animate-in">
-            <div style={{fontSize:11,color:"#E05C5C",letterSpacing:2,marginBottom:20}}>⚠ KEY GAPS & RISKS — LEADERSHIP CRITICAL POINTS</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14,marginBottom:28}}>
+            <div style={{fontSize:11,color:"#E05C5C",letterSpacing:2,marginBottom:20}}>⚠ KEY GAPS & RISKS — CURRENT STATE vs TARGET</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:12,marginBottom:28}}>
               {gaps.map(g => (
-                <div key={g.id} className="gap-card" style={{background:"#0D1520",border:"1px solid #3A1A1A",borderLeft:"3px solid #E05C5C",borderRadius:8,padding:"16px 18px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <span style={{fontSize:18}}>{g.icon}</span>
-                    <span style={{fontSize:13,fontWeight:700,color:"#E8C0C0",fontFamily:"'IBM Plex Sans',sans-serif"}}>{g.id}. {g.title}</span>
+                <div key={g.id} className="gap-card" style={{background:"#0D1520",border:"1px solid #3A1A1A",borderLeft:"3px solid #E05C5C",borderRadius:8,padding:"14px 16px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:7}}>
+                    <span style={{fontSize:17}}>{g.icon}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:"#E8C0C0",fontFamily:"'IBM Plex Sans',sans-serif"}}>{g.id}. {g.title}</span>
                   </div>
-                  <p style={{fontSize:12,color:"#8A7070",margin:0,lineHeight:1.6}}>{g.desc}</p>
+                  <p style={{fontSize:11,color:"#8A7070",margin:0,lineHeight:1.6}}>{g.desc}</p>
                 </div>
               ))}
             </div>
-
             <div style={{fontSize:11,color:"#4A9EFF",letterSpacing:2,marginBottom:14}}>ENFORCEMENT COVERAGE MATRIX</div>
             <div style={{background:"#0D1520",border:"1px solid #1A2E44",borderRadius:8,overflow:"hidden"}}>
               <div style={{background:"#132848",padding:"9px 16px",display:"grid",gridTemplateColumns:"1fr 200px"}}>
                 <span style={{fontSize:11,fontWeight:700,color:"#4A9EFF"}}>Control Area</span>
-                <span style={{fontSize:11,fontWeight:700,color:"#4A9EFF"}}>Current Status</span>
+                <span style={{fontSize:11,fontWeight:700,color:"#4A9EFF"}}>Status</span>
               </div>
               {matrix.map((row,i) => (
-                <div key={i} style={{padding:"9px 16px",display:"grid",gridTemplateColumns:"1fr 200px",alignItems:"center",background:i%2===0?"#0D1520":"#080C12",borderTop:"1px solid #0F1E2E"}}>
-                  <span style={{fontSize:12,color:"#CADCFC"}}>{row.label}</span>
-                  <span style={{fontSize:10,fontWeight:700,padding:"3px 10px",borderRadius:4,background:row.bg,border:`1px solid ${row.b}`,color:row.c,textAlign:"center"}}>{row.status}</span>
+                <div key={i} style={{padding:"8px 16px",display:"grid",gridTemplateColumns:"1fr 200px",alignItems:"center",background:i%2===0?"#0D1520":"#080C12",borderTop:"1px solid #0F1E2E"}}>
+                  <span style={{fontSize:11,color:"#CADCFC"}}>{row.label}</span>
+                  <span style={{fontSize:9,fontWeight:700,padding:"3px 8px",borderRadius:4,background:row.bg,border:`1px solid ${row.b}`,color:row.c,textAlign:"center",fontFamily:"'IBM Plex Mono'"}}>{row.status}</span>
                 </div>
               ))}
             </div>
@@ -223,64 +367,161 @@ function App() {
         {/* ── SUMMARY ── */}
         {view==="summary" && (
           <div className="animate-in">
-            <div style={{fontSize:11,color:"#4A9EFF",letterSpacing:2,marginBottom:20}}>LEADERSHIP SUMMARY — THREE CONTROL LAYERS</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:16,marginBottom:28}}>
+            <div style={{fontSize:11,color:"#4A9EFF",letterSpacing:2,marginBottom:20}}>STEP COUNT BY STATUS</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:10,marginBottom:28}}>
               {[
-                { num:"01", title:"Pre-Ingestion Control", sub:"CURATION LAYER", c:"#4A9EFF", bg:"#0D1A2E", border:"#1A3A6A",
-                  pts:["ServiceNow request + manager approval","JFrog Curation vets before entry","Trusted/preconfigured repos only"],
-                  status:"PARTIAL" },
-                { num:"02", title:"Security Scanning", sub:"JFROG XRAY", c:"#F5A623", bg:"#1E1400", border:"#5A3A00",
-                  pts:["Scans at ingestion + continuously","NVD + VulnDB sources","Only Critical CVEs enforced"],
-                  status:"PARTIAL — CRITICAL ONLY" },
-                { num:"03", title:"Operational Controls", sub:"INCIDENT RESPONSE", c:"#E05C5C", bg:"#1E0A0A", border:"#5A1A1A",
-                  pts:["Manual blocking via exclusion lists","Triggered by SIR/CSOC or Artifactory team","Cached artifacts remain a risk post-block"],
-                  status:"MANUAL / GAPS EXIST" },
-              ].map(layer => (
-                <div key={layer.num} style={{background:layer.bg,border:`1px solid ${layer.border}`,borderTop:`3px solid ${layer.c}`,borderRadius:8,padding:18}}>
-                  <div style={{fontSize:28,fontWeight:700,color:layer.c,opacity:0.3,fontFamily:"'IBM Plex Mono'",lineHeight:1}}>{layer.num}</div>
-                  <div style={{fontSize:14,fontWeight:700,color:"#E8F4FF",fontFamily:"'IBM Plex Sans',sans-serif",marginTop:4}}>{layer.title}</div>
-                  <div style={{fontSize:9,color:layer.c,letterSpacing:1.5,marginBottom:12}}>{layer.sub}</div>
-                  {layer.pts.map((p,i) => (
-                    <div key={i} style={{fontSize:11,color:"#8AAAC0",marginBottom:5,display:"flex",gap:6}}>
-                      <span style={{color:layer.c,flexShrink:0}}>—</span>{p}
-                    </div>
-                  ))}
-                  <div style={{marginTop:12,padding:"5px 10px",borderRadius:4,background:"#080C12",fontSize:9,color:layer.c,letterSpacing:1}}>
-                    STATUS: {layer.status}
-                  </div>
+                { label:"Controlled",       count:steps.filter(s=>s.status==="controlled").length,   c:"#2A9D5C", bg:"#0D2F1A", b:"#1E6B3A" },
+                { label:"Partial",          count:steps.filter(s=>s.status==="partial").length,      c:"#F5A623", bg:"#2B1E00", b:"#7A5200" },
+                { label:"Gap → Enforce",    count:steps.filter(s=>s.status==="gap_enforce").length,  c:"#FF8C42", bg:"#2B1500", b:"#7A4000" },
+                { label:"Gap → Controlled", count:steps.filter(s=>s.status==="gap_control").length,  c:"#A0C040", bg:"#1A2000", b:"#4A6000" },
+                { label:"Gap (Not Implemented)", count:steps.filter(s=>s.status==="gap").length,           c:"#E05C5C", bg:"#2B0A0A", b:"#7A1E1E" },
+              ].map(item => (
+                <div key={item.label} style={{padding:"14px",borderRadius:6,background:item.bg,border:`1px solid ${item.b}`,textAlign:"center"}}>
+                  <div style={{fontSize:32,fontWeight:700,color:item.c,fontFamily:"'IBM Plex Mono'"}}>{item.count}</div>
+                  <div style={{fontSize:10,color:item.c,marginTop:4,letterSpacing:0.5}}>{item.label}</div>
                 </div>
               ))}
             </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+              {["controlled","partial","gap_enforce","gap_control","gap"].map(statusKey => (
+                <div key={statusKey} style={{background:"#0D1520",border:`1px solid ${sc[statusKey].border}`,borderTop:`2px solid ${sc[statusKey].badge}`,borderRadius:8,padding:16}}>
+                  <div style={{fontSize:9,color:sc[statusKey].badge,letterSpacing:2,marginBottom:10,fontFamily:"'IBM Plex Mono'"}}>{sc[statusKey].label.toUpperCase()}</div>
+                  {steps.filter(s=>s.status===statusKey).map(s => (
+                    <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,fontSize:11,color:"#8AAAC0"}}>
+                      <span>{s.icon}</span>
+                      <span style={{fontSize:9,color:"#3A6A8A",fontFamily:"'IBM Plex Mono'",flexShrink:0}}>{String(s.id).padStart(2,"0")}</span>
+                      <span style={{color:"#A0BDD4"}}>{s.title}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-            <div style={{background:"#0D1A2E",border:"1px solid #1A3A6A",borderRadius:8,padding:20}}>
-              <div style={{fontSize:11,color:"#4A9EFF",letterSpacing:2,marginBottom:14}}>KEY CHARACTERISTICS</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:10}}>
-                {[
-                  {icon:"✅",text:"Controlled intake via ServiceNow + manager approval",good:true},
-                  {icon:"✅",text:"Use of trusted/preconfigured repository sources",good:true},
-                  {icon:"✅",text:"Critical vulnerability enforcement via Xray",good:true},
-                  {icon:"⚠️",text:"Some teams bypass Artifactory (direct internet pulls)",good:false},
-                  {icon:"⚠️",text:"Limited automation in incident response processes",good:false},
-                  {icon:"⚠️",text:"SBOM gaps for third-party dependencies at ingestion",good:false},
-                ].map((item,i) => (
-                  <div key={i} style={{
-                    padding:"10px 12px",borderRadius:6,
-                    background:item.good?"#0D2F1A":"#2B0A0A",
-                    border:`1px solid ${item.good?"#1E6B3A":"#5A1A1A"}`,
-                    fontSize:11,color:"#A0BDD4",display:"flex",gap:8,alignItems:"flex-start",
-                  }}>
-                    <span style={{flexShrink:0}}>{item.icon}</span>
-                    <span style={{lineHeight:1.5}}>{item.text}</span>
-                  </div>
-                ))}
+        {/* ── SLSA TAB ── */}
+        {view==="slsa" && (
+          <div className="animate-in">
+            {/* Header banner */}
+            <div style={{background:"#0D1A2E",border:"1px solid #1A3A6A",borderRadius:10,padding:"18px 22px",marginBottom:24}}>
+              <div style={{fontSize:10,letterSpacing:3,color:"#4A9EFF",marginBottom:6}}>SUPPLY-CHAIN LEVELS FOR SOFTWARE ARTIFACTS</div>
+              <div style={{fontFamily:"'IBM Plex Sans',sans-serif",fontSize:20,fontWeight:700,color:"#E8F4FF",marginBottom:8}}>
+                SLSA Framework Mapping — NFCU Current State vs Target
               </div>
+              <div style={{fontSize:12,color:"#6A8AA0",lineHeight:1.7,maxWidth:740}}>
+                SLSA (slsa.dev) is a security framework that defines increasing levels of supply chain integrity.
+                Each level builds on the previous. The mapping below shows where NFCU currently sits, which lifecycle
+                steps satisfy each requirement, and exactly what must be added to reach L1, L2, and L3.
+              </div>
+              {/* Current level indicator */}
+              <div style={{display:"flex",gap:6,marginTop:16,alignItems:"center",flexWrap:"wrap"}}>
+                <span style={{fontSize:10,color:"#6A8AA0",marginRight:4}}>CURRENT ESTIMATED LEVEL:</span>
+                {["L0","L1","L2","L3"].map((lv,i) => {
+                  const active = i === 0;
+                  const colors = ["#E05C5C","#4A9EFF","#A78BFA","#2A9D5C"];
+                  const bgs    = ["#2B0A0A","#0D1A2E","#120A20","#0A1A10"];
+                  const bords  = ["#7A1E1E","#1A3A6A","#3A1A6A","#1A4A2A"];
+                  return (
+                    <div key={lv} style={{display:"flex",alignItems:"center",gap:0}}>
+                      <div style={{padding:"5px 14px",borderRadius:5,background:active?bgs[i]:"#0A1018",border:`2px solid ${active?colors[i]:"#1A2A3A"}`,fontWeight:active?700:400,color:active?colors[i]:"#3A5A7A",fontFamily:"'IBM Plex Mono'",fontSize:12}}>
+                        {lv}
+                      </div>
+                      {i < 3 && <div style={{width:24,height:2,background:"#1A2A3A",margin:"0 2px"}}/>}
+                    </div>
+                  );
+                })}
+                <span style={{fontSize:10,color:"#E05C5C",marginLeft:8}}>← Approaching L1. Not yet fully compliant.</span>
+              </div>
+            </div>
+
+            {/* Level sections */}
+            {slsaLevels.map(lv => (
+              <div key={lv.level} style={{background:lv.bg,border:`1px solid ${lv.border}`,borderLeft:`4px solid ${lv.color}`,borderRadius:10,marginBottom:16,overflow:"hidden"}}>
+                {/* Level header — clickable */}
+                <div onClick={() => toggleSlsa(lv.level)} style={{padding:"16px 20px",cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+                  <div style={{width:40,height:40,borderRadius:8,background:"#080C12",border:`2px solid ${lv.color}`,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:15,color:lv.color,fontFamily:"'IBM Plex Mono'",flexShrink:0}}>
+                    {lv.level}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:15,fontWeight:700,color:"#E8F4FF",fontFamily:"'IBM Plex Sans',sans-serif"}}>{lv.name} — {lv.subtitle}</div>
+                    <div style={{fontSize:11,color:"#6A8AA0",marginTop:3}}>{lv.description}</div>
+                  </div>
+                  {/* met/partial/missing pill */}
+                  <div style={{padding:"4px 12px",borderRadius:4,background: lv.currentState==="met"?"#0D2F1A":lv.currentState==="partial"?"#2B1E00":"#2B0A0A",border:`1px solid ${lv.currentState==="met"?"#1E6B3A":lv.currentState==="partial"?"#7A5200":"#7A1E1E"}`,fontSize:10,color:lv.currentState==="met"?"#2A9D5C":lv.currentState==="partial"?"#F5A623":"#E05C5C",fontFamily:"'IBM Plex Mono'",flexShrink:0,whiteSpace:"nowrap"}}>
+                    {lv.currentState==="met"?"✅ Achieved":lv.currentState==="partial"?"⚠️ Partial":"❌ Not Yet"}
+                  </div>
+                  <div style={{color:"#3A6A8A",fontSize:18,marginLeft:4}}>{slsaExpanded[lv.level]?"▲":"▼"}</div>
+                </div>
+
+                {slsaExpanded[lv.level] && (
+                  <div style={{borderTop:`1px solid ${lv.border}`,padding:"18px 20px"}}>
+
+                    {/* Current state note */}
+                    <div style={{background:"#080C12",border:`1px solid ${lv.border}`,borderRadius:6,padding:"10px 14px",marginBottom:18,fontSize:11,color:"#8AAAC0",lineHeight:1.6}}>
+                      <span style={{color:lv.color,fontWeight:600,letterSpacing:1,fontSize:9,fontFamily:"'IBM Plex Mono'"}}>CURRENT STATE  </span>
+                      {lv.currentNote}
+                    </div>
+
+                    {/* Requirements table */}
+                    <div style={{fontSize:10,letterSpacing:2,color:"#4A7A9A",marginBottom:10}}>REQUIREMENTS & CURRENT MAPPING</div>
+                    <div style={{background:"#080C12",border:`1px solid ${lv.border}`,borderRadius:8,overflow:"hidden",marginBottom:20}}>
+                      <div style={{background:"#0D1A2E",padding:"8px 14px",display:"grid",gridTemplateColumns:"2fr 1fr 2fr",gap:10}}>
+                        <span style={{fontSize:10,fontWeight:700,color:"#4A9EFF"}}>SLSA Requirement</span>
+                        <span style={{fontSize:10,fontWeight:700,color:"#4A9EFF"}}>Status</span>
+                        <span style={{fontSize:10,fontWeight:700,color:"#4A9EFF"}}>Lifecycle Step(s) / Note</span>
+                      </div>
+                      {lv.requirements.map((req,i) => {
+                        const rs = reqStatus[req.status];
+                        return (
+                          <div key={i} className="slsa-req" style={{padding:"10px 14px",display:"grid",gridTemplateColumns:"2fr 1fr 2fr",gap:10,alignItems:"start",background:i%2===0?"#080C12":"#0A0E16",borderTop:"1px solid #0F1E2E",transition:"background 0.15s"}}>
+                            <span style={{fontSize:11,color:"#CADCFC",lineHeight:1.5}}>{req.req}</span>
+                            <span style={{fontSize:9,fontWeight:700,padding:"3px 8px",borderRadius:3,background:rs.bg,border:`1px solid ${rs.b}`,color:rs.c,fontFamily:"'IBM Plex Mono'",display:"inline-block",whiteSpace:"nowrap"}}>{rs.label}</span>
+                            <div>
+                              <div style={{marginBottom:5,flexWrap:"wrap",display:"flex",gap:2}}>
+                                {req.stepIds.map(id => <StepPill key={id} id={id}/>)}
+                              </div>
+                              <div style={{fontSize:10,color:"#5A7A9A",lineHeight:1.5}}>{req.note}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* What to add */}
+                    <div style={{fontSize:10,letterSpacing:2,color:lv.color,marginBottom:10}}>WHAT MUST BE ADDED TO REACH {lv.level}</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {lv.addToReach.map((item,i) => {
+                        const step = steps.find(s => s.id === item.stepId);
+                        return (
+                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 14px",background:"#080C12",border:`1px solid ${lv.border}`,borderLeft:`3px solid ${lv.color}`,borderRadius:6}}>
+                            <span style={{fontSize:16,flexShrink:0,marginTop:1}}>{step?.icon}</span>
+                            <div>
+                              <div style={{fontSize:12,color:"#C0D4E8",fontFamily:"'IBM Plex Sans',sans-serif",fontWeight:600}}>{item.text}</div>
+                              {step && <div style={{fontSize:10,color:"#4A6A80",marginTop:3,lineHeight:1.5}}>{step.details[0]}</div>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Footer note */}
+            <div style={{background:"#0D1A2E",border:"1px solid #1A3A6A",borderRadius:8,padding:"14px 18px",marginTop:8,fontSize:11,color:"#5A7A9A",lineHeight:1.7}}>
+              <span style={{color:"#4A9EFF",fontWeight:600}}>Note: </span>
+              SLSA levels are cumulative — L2 requires all L1 requirements to be met first, and L3 requires L1 + L2.
+              Click each level header to expand/collapse. Step numbers reference the 19-step lifecycle in the Diagram tab.
+              Full SLSA specification at <span style={{color:"#4A9EFF"}}>slsa.dev</span>.
             </div>
           </div>
         )}
 
       </div>
       <div style={{textAlign:"center",padding:20,fontSize:10,color:"#2A4A6A",letterSpacing:1}}>
-        NFCU // CICD Tools Team — JFrog Artifactory Lifecycle KT // Supply Chain Hardening
+        NFCU // CICD Tools Team — JFrog Artifactory Lifecycle // Supply Chain Hardening
       </div>
     </div>
   );
