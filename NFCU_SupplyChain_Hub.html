@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFCU Supply Chain Hardening — Documentation Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #080C12; color: #8AAAC0; font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0D1520; }
+::-webkit-scrollbar-thumb { background: #1E3A5A; border-radius: 3px; }
+
+/* ── HEADER ── */
+.header {
+  background: linear-gradient(135deg, #0D1A2E 0%, #0A2040 100%);
+  border-bottom: 1px solid #1A3A60;
+  padding: 32px 40px 24px;
+}
+.header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 3px; color: #4A9EFF; margin-bottom: 8px; }
+.header h1 { font-size: clamp(18px, 2.5vw, 28px); font-weight: 700; color: #E8F4FF; letter-spacing: -0.3px; line-height: 1.2; }
+.header-sub { font-size: 13px; color: #6A8AA0; margin-top: 6px; }
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display: flex; gap: 0; margin-top: 24px;
+  background: #0A1018; border: 1px solid #1A2E44; border-radius: 8px; overflow: hidden;
+}
+.stat-item {
+  flex: 1; padding: 14px 20px; border-right: 1px solid #1A2E44; text-align: center;
+}
+.stat-item:last-child { border-right: none; }
+.stat-num { font-size: 26px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+.stat-label { font-size: 10px; color: #4A6A80; letter-spacing: 1px; margin-top: 3px; }
+
+/* ── SEARCH + FILTER BAR ── */
+.controls {
+  padding: 18px 40px; background: #0A1018; border-bottom: 1px solid #0F1E2E;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.search-box {
+  flex: 1; min-width: 200px; background: #0D1520; border: 1px solid #1A3A5A;
+  border-radius: 6px; padding: 8px 14px; color: #C0D4E8;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; outline: none;
+}
+.search-box::placeholder { color: #3A5A7A; }
+.search-box:focus { border-color: #2A5DA0; }
+.filter-btn {
+  padding: 7px 14px; border-radius: 6px; font-size: 11px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.5px; border: none;
+  transition: all 0.15s ease;
+}
+.filter-btn.active { background: #1A3D6B; color: #4A9EFF; border: 1px solid #2A5DA0; }
+.filter-btn:not(.active) { background: transparent; color: #5A7A9A; border: 1px solid #1A3A60; }
+.filter-btn:hover { opacity: 0.8; }
+
+/* ── LEGEND ── */
+.legend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #6A8AA0; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ── MAIN CONTENT ── */
+.main { padding: 24px 40px 40px; max-width: 1400px; margin: 0 auto; }
+
+/* ── SECTION HEADERS ── */
+.section-header {
+  display: flex; align-items: center; gap: 12px; margin: 28px 0 14px;
+  padding-bottom: 10px; border-bottom: 1px solid #0F1E2E;
+}
+.section-header h2 { font-size: 11px; color: #4A9EFF; letter-spacing: 3px; font-family: 'IBM Plex Mono', monospace; }
+.section-count { font-size: 10px; color: #3A5A7A; font-family: 'IBM Plex Mono', monospace; }
+
+/* ── ENTRY POINT CARDS ── */
+.cards-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px;
+}
+.entry-card {
+  background: #0D1520; border: 1px solid #1A2E44; border-radius: 8px;
+  padding: 16px; transition: all 0.2s ease; position: relative;
+  border-left: 3px solid transparent;
+}
+.entry-card:hover { border-color: #1E3A5A; transform: translateY(-1px); }
+.entry-card.documented   { border-left-color: #2A9D5C; }
+.entry-card.in-progress  { border-left-color: #F5A623; }
+.entry-card.not-started  { border-left-color: #3A5A7A; }
+
+.card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.card-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.card-title-block { flex: 1; min-width: 0; }
+.card-num { font-size: 9px; color: #3A6A8A; font-family: 'IBM Plex Mono', monospace; }
+.card-title { font-size: 13px; font-weight: 700; color: #C8D8E8; line-height: 1.3; }
+.card-subtitle { font-size: 10px; color: #5A7A9A; margin-top: 2px; }
+
+/* Status badge */
+.status-badge {
+  font-size: 9px; font-weight: 600; padding: 3px 8px; border-radius: 3px;
+  font-family: 'IBM Plex Mono', monospace; white-space: nowrap; flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+.badge-documented  { background: #0D2F1A; border: 1px solid #1E6B3A; color: #2A9D5C; }
+.badge-in-progress { background: #2B1E00; border: 1px solid #7A5200; color: #F5A623; }
+.badge-not-started { background: #0D1520; border: 1px solid #2A4A6A; color: #4A7A9A; }
+
+/* Examples */
+.examples {
+  font-size: 11px; color: #4A6A80; line-height: 1.55; padding: 8px 10px;
+  background: #080C12; border-radius: 5px; margin-bottom: 10px;
+  border-left: 2px solid #1A2E44;
+}
+.examples strong { color: #6A8AA0; font-weight: 600; font-size: 9px; letter-spacing: 1px; display: block; margin-bottom: 3px; }
+
+/* Card footer */
+.card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.owner-tag {
+  font-size: 10px; color: #3A6A8A; font-family: 'IBM Plex Mono', monospace;
+  background: #0A1018; border: 1px solid #1A2E44; border-radius: 3px; padding: 2px 7px;
+}
+.deep-dive-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 4px;
+  text-decoration: none; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.5px;
+  transition: all 0.15s ease;
+}
+.link-active {
+  background: #0D2F1A; border: 1px solid #1E6B3A; color: #2A9D5C;
+}
+.link-active:hover { background: #1A4A2A; }
+.link-pending {
+  background: #0D1520; border: 1px solid #1A2E44; color: #3A5A7A; cursor: default;
+}
+
+/* ── FOOTER ── */
+.hub-footer {
+  text-align: center; padding: 24px 40px; border-top: 1px solid #0F1E2E;
+  font-size: 10px; color: #2A4A6A; font-family: 'IBM Plex Mono', monospace; letter-spacing: 1px;
+}
+
+/* ── HIDE CLASS ── */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="eyebrow">NAVY FEDERAL CREDIT UNION  ·  PRODUCT INTEGRITY & TESTING (PIT)</div>
+      <h1>Supply Chain Hardening — Documentation Hub</h1>
+      <div class="header-sub">Living reference for all software supply chain entry points, process documentation, and workstream ownership</div>
+    </div>
+    <div style="text-align:right; flex-shrink:0;">
+      <div style="font-size:10px; color:#3A5A7A; font-family:'IBM Plex Mono'; margin-bottom:4px;">LAST UPDATED</div>
+      <div style="font-size:12px; color:#6A8AA0; font-family:'IBM Plex Mono'">July 2026</div>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num" style="color:#C8D8E8">25</div>
+      <div class="stat-label">TOTAL ENTRY POINTS</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:#2A9D5C">1</div>
+      <div class="stat-label">DOCUMENTED</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:#F5A623">0</div>
+      <div class="stat-label">IN PROGRESS</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:#4A7A9A">24</div>
+      <div class="stat-label">NOT STARTED</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" style="color:#4A9EFF">4%</div>
+      <div class="stat-label">COVERAGE</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONTROLS ── -->
+<div class="controls">
+  <input class="search-box" type="text" id="searchBox" placeholder="Search entry points..." oninput="filterCards()">
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <button class="filter-btn active" onclick="setFilter('all', this)">All (25)</button>
+    <button class="filter-btn" onclick="setFilter('documented', this)">Documented (1)</button>
+    <button class="filter-btn" onclick="setFilter('in-progress', this)">In Progress (0)</button>
+    <button class="filter-btn" onclick="setFilter('not-started', this)">Not Started (24)</button>
+  </div>
+  <div class="legend" style="margin-left:auto;">
+    <div class="legend-item"><span class="legend-dot" style="background:#2A9D5C"></span>Documented</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#F5A623"></span>In Progress</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#3A5A7A"></span>Not Started</div>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- Notice banner -->
+  <div style="background:#0D1A2E; border:1px solid #1A3A6A; border-left:3px solid #4A9EFF; border-radius:7px; padding:14px 18px; margin-bottom:24px; font-size:12px; color:#6A8AA0; line-height:1.7;">
+    <span style="color:#4A9EFF; font-weight:700; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:1px; display:block; margin-bottom:4px;">HOW TO USE THIS HUB</span>
+    This page documents all known software supply chain entry points into the NFCU environment.
+    Each entry point links to a dedicated deep-dive HTML documenting its current process, controls, gaps, and ownership.
+    <strong style="color:#8AAAC0;">Third-Party Dependencies (Private - Internal)</strong> is the first completed deep dive.
+    As each workstream is documented, this index will be updated with links and status changes.
+  </div>
+
+  <!-- ─── SECTION 1: CODE & PACKAGE DEPENDENCIES ─── -->
+  <div class="section-header">
+    <h2>CODE & PACKAGE DEPENDENCIES</h2>
+    <span class="section-count">5 entry points</span>
+  </div>
+  <div class="cards-grid">
+
+    <div class="entry-card documented" data-status="documented" data-text="third party dependencies private internal jfrog artifactory nexus npm pypi docker">
+      <div class="card-top">
+        <div class="card-icon">📦</div>
+        <div class="card-title-block">
+          <div class="card-num">01</div>
+          <div class="card-title">Third-Party Dependencies</div>
+          <div class="card-subtitle">Private / Internal</div>
+        </div>
+        <span class="status-badge badge-documented">✅ DOCUMENTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        JFrog Artifactory, Nexus, Internal Maven, npm, PyPI / Docker repos
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">CICD Tools Team</span>
+        <a href="NFCU_Artifactory_Lifecycle.html" class="deep-dive-link link-active">→ Open Deep Dive</a>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="open source dependencies public external maven npm nuget pypi go modules rubygems">
+      <div class="card-top">
+        <div class="card-icon">🌐</div>
+        <div class="card-title-block">
+          <div class="card-num">02</div>
+          <div class="card-title">Open-Source Dependencies</div>
+          <div class="card-subtitle">Public / External</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Maven, npm, NuGet, PyPI, Go modules, RubyGems
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="internal build artifacts compiled packages reusable libraries shared frameworks">
+      <div class="card-top">
+        <div class="card-icon">🔨</div>
+        <div class="card-title-block">
+          <div class="card-num">03</div>
+          <div class="card-title">Internal Build Artifacts</div>
+          <div class="card-subtitle">Internally compiled packages</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Internally compiled packages, reusable libraries, shared frameworks
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="infrastructure as code terraform helm kubernetes cloudformation">
+      <div class="card-top">
+        <div class="card-icon">🏗️</div>
+        <div class="card-title-block">
+          <div class="card-num">04</div>
+          <div class="card-title">Infrastructure as Code Modules</div>
+          <div class="card-subtitle">Terraform, Helm, Kubernetes manifests</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Terraform modules, Helm charts, Kubernetes manifests, CloudFormation templates
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="secrets config packages certificates policy-as-code encrypted">
+      <div class="card-top">
+        <div class="card-icon">🔑</div>
+        <div class="card-title-block">
+          <div class="card-num">05</div>
+          <div class="card-title">Secrets / Config Packages</div>
+          <div class="card-subtitle">Certificates, policy bundles</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Config bundles, certificates, policy-as-code, encrypted packages
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── SECTION 2: BUILD & DELIVERY PIPELINE ─── -->
+  <div class="section-header">
+    <h2>BUILD & DELIVERY PIPELINE</h2>
+    <span class="section-count">4 entry points</span>
+  </div>
+  <div class="cards-grid">
+
+    <div class="entry-card not-started" data-status="not-started" data-text="ci cd pipelines build tools github actions jenkins azure devops">
+      <div class="card-top">
+        <div class="card-icon">⚙️</div>
+        <div class="card-title-block">
+          <div class="card-num">06</div>
+          <div class="card-title">CI/CD Pipelines</div>
+          <div class="card-subtitle">Build tools, pipeline plugins</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Build tools, pipeline plugins, GitHub Actions, Jenkins plugins, Azure DevOps extensions
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="source code repositories commits vendor code drops open source forks">
+      <div class="card-top">
+        <div class="card-icon">📁</div>
+        <div class="card-title-block">
+          <div class="card-num">07</div>
+          <div class="card-title">Source Code Repositories</div>
+          <div class="card-subtitle">Vendor drops, open-source forks</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Developer commits, vendor code drops, open-source copied code, forks
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="developer tools ide plugins extensions cli local build tools package managers vs code jetbrains">
+      <div class="card-top">
+        <div class="card-icon">🛠️</div>
+        <div class="card-title-block">
+          <div class="card-num">08</div>
+          <div class="card-title">Developer Tools</div>
+          <div class="card-subtitle">IDE plugins & extensions, CLI tools, package managers</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        IDE plugins & extensions (VS Code, JetBrains), CLI tools, local build tools, package managers
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="test tools scanners security test frameworks synthetic monitoring agents">
+      <div class="card-top">
+        <div class="card-icon">🧪</div>
+        <div class="card-title-block">
+          <div class="card-num">09</div>
+          <div class="card-title">Test Tools & Scanners</div>
+          <div class="card-subtitle">Security tools, test frameworks</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Security tools, test frameworks, synthetic monitoring agents
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── SECTION 3: CONTAINERS & CLOUD ─── -->
+  <div class="section-header">
+    <h2>CONTAINERS & CLOUD IMAGES</h2>
+    <span class="section-count">3 entry points</span>
+  </div>
+  <div class="cards-grid">
+
+    <div class="entry-card not-started" data-status="not-started" data-text="container images base images docker hub vendor third-party">
+      <div class="card-top">
+        <div class="card-icon">🐳</div>
+        <div class="card-title-block">
+          <div class="card-num">10</div>
+          <div class="card-title">Container Images</div>
+          <div class="card-subtitle">Base images, Docker Hub, vendor images</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Base images, third-party images, Docker Hub, vendor images
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="cloud marketplace images aws azure gcp amis vm managed apps">
+      <div class="card-top">
+        <div class="card-icon">☁️</div>
+        <div class="card-title-block">
+          <div class="card-num">11</div>
+          <div class="card-title">Cloud Marketplace Images</div>
+          <div class="card-subtitle">AWS/Azure/GCP/OCI marketplace</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        AWS/Azure/GCP/OCI marketplace AMIs, VM images, managed apps
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="patch update channels vendor auto-updates os package application patches">
+      <div class="card-top">
+        <div class="card-icon">🔄</div>
+        <div class="card-title-block">
+          <div class="card-num">12</div>
+          <div class="card-title">Patch / Update Channels</div>
+          <div class="card-subtitle">Vendor auto-updates, OS patches</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Vendor auto-updates, OS/package updates, application patches
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── SECTION 4: VENDOR & COMMERCIAL SOFTWARE ─── -->
+  <div class="section-header">
+    <h2>VENDOR & COMMERCIAL SOFTWARE</h2>
+    <span class="section-count">5 entry points</span>
+  </div>
+  <div class="cards-grid">
+
+    <div class="entry-card not-started" data-status="not-started" data-text="commercial software cots purchased tools desktop enterprise apps">
+      <div class="card-top">
+        <div class="card-icon">🏢</div>
+        <div class="card-title-block">
+          <div class="card-num">13</div>
+          <div class="card-title">Commercial Software / COTS</div>
+          <div class="card-subtitle">Purchased tools, enterprise apps</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Purchased tools, desktop software, enterprise apps
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="vendor delivered binaries installers agents sdks libraries appliances">
+      <div class="card-top">
+        <div class="card-icon">📀</div>
+        <div class="card-title-block">
+          <div class="card-num">14</div>
+          <div class="card-title">Vendor Delivered Binaries</div>
+          <div class="card-subtitle">Installers, agents, SDKs, appliances</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Installers, agents, SDKs, libraries, appliances
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="third-party managed services msp monitoring agents remote support">
+      <div class="card-top">
+        <div class="card-icon">🤝</div>
+        <div class="card-title-block">
+          <div class="card-num">15</div>
+          <div class="card-title">Third-Party Managed Services</div>
+          <div class="card-subtitle">MSP tools, monitoring agents</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        MSP-deployed tools, monitoring agents, remote support utilities
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="firmware embedded software device appliance hardware vendor-managed">
+      <div class="card-top">
+        <div class="card-icon">💾</div>
+        <div class="card-title-block">
+          <div class="card-num">16</div>
+          <div class="card-title">Firmware / Embedded Software</div>
+          <div class="card-subtitle">Device firmware, hardware software</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Device firmware, appliance updates, vendor-managed hardware software
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="email download manual installs ad hoc vendor portals binaries">
+      <div class="card-top">
+        <div class="card-icon">📧</div>
+        <div class="card-title-block">
+          <div class="card-num">17</div>
+          <div class="card-title">Email / Download / Manual Installs</div>
+          <div class="card-subtitle">Ad hoc, vendor portals, manual uploads</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Ad hoc downloads, vendor portals, manually uploaded binaries
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── SECTION 5: INTEGRATIONS & PLATFORMS ─── -->
+  <div class="section-header">
+    <h2>INTEGRATIONS & PLATFORMS</h2>
+    <span class="section-count">5 entry points</span>
+  </div>
+  <div class="cards-grid">
+
+    <div class="entry-card not-started" data-status="not-started" data-text="saas integrations vendor connectors marketplace apps oauth">
+      <div class="card-top">
+        <div class="card-icon">🔌</div>
+        <div class="card-title-block">
+          <div class="card-num">18</div>
+          <div class="card-title">SaaS Integrations</div>
+          <div class="card-subtitle">Vendor connectors, marketplace apps</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Vendor SaaS connectors, marketplace apps, OAuth apps
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="api gateways shared platforms gateway plugins policy middleware">
+      <div class="card-top">
+        <div class="card-icon">🔀</div>
+        <div class="card-title-block">
+          <div class="card-num">19</div>
+          <div class="card-title">API Gateways / Shared Platforms</div>
+          <div class="card-subtitle">Plugins, policy bundles, middleware</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Gateway plugins, policy bundles, shared middleware
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="low code no code power platform salesforce servicenow appexchange">
+      <div class="card-top">
+        <div class="card-icon">⚡</div>
+        <div class="card-title-block">
+          <div class="card-num">20</div>
+          <div class="card-title">Low-Code / No-Code Platforms</div>
+          <div class="card-subtitle">Power Platform, Salesforce, ServiceNow</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Power Platform apps, Salesforce packages, ServiceNow apps, AppExchange plugins
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="data pipelines etl connectors custom scripts analytics external libraries">
+      <div class="card-top">
+        <div class="card-icon">🔁</div>
+        <div class="card-title-block">
+          <div class="card-num">21</div>
+          <div class="card-title">Data Pipelines / ETL Tools</div>
+          <div class="card-subtitle">Connectors, external analytics libraries</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Connectors, custom scripts, external libraries used by analytics platforms
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="mobile app components sdks mobile libraries app store dependencies">
+      <div class="card-top">
+        <div class="card-icon">📱</div>
+        <div class="card-title-block">
+          <div class="card-num">22</div>
+          <div class="card-title">Mobile App Components</div>
+          <div class="card-subtitle">Third-party SDKs, app store dependencies</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Third-party SDKs, mobile libraries, app store dependencies
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── SECTION 6: EMERGING & SPECIALIST ─── -->
+  <div class="section-header">
+    <h2>EMERGING & SPECIALIST</h2>
+    <span class="section-count">3 entry points</span>
+  </div>
+  <div class="cards-grid">
+
+    <div class="entry-card not-started" data-status="not-started" data-text="ai ml components models datasets embeddings prompt libraries external apis">
+      <div class="card-top">
+        <div class="card-icon">🤖</div>
+        <div class="card-title-block">
+          <div class="card-num">23</div>
+          <div class="card-title">AI / ML Components</div>
+          <div class="card-subtitle">Models, datasets, external APIs</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Models, datasets, embeddings, prompt libraries, external model APIs
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+    <div class="entry-card not-started" data-status="not-started" data-text="browser extensions enterprise approved security dev productivity plugins">
+      <div class="card-top">
+        <div class="card-icon">🌍</div>
+        <div class="card-title-block">
+          <div class="card-num">24</div>
+          <div class="card-title">Browser Extensions</div>
+          <div class="card-subtitle">Enterprise-approved, security/dev plugins</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Enterprise-approved extensions, security/dev productivity plugins
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+
+    <div class="entry-card not-started" data-status="not-started" data-text="local workstation endpoint security developer machines package managers local installs homebrew chocolatey npm global pip">
+      <div class="card-top">
+        <div class="card-icon">💻</div>
+        <div class="card-title-block">
+          <div class="card-num">25</div>
+          <div class="card-title">Local Workstation / Endpoint</div>
+          <div class="card-subtitle">Developer machines, local installs, package managers</div>
+        </div>
+        <span class="status-badge badge-not-started">NOT STARTED</span>
+      </div>
+      <div class="examples">
+        <strong>EXAMPLES</strong>
+        Local package managers (Homebrew, Chocolatey, winget), global npm/pip installs, developer-installed tools, dotfiles, local SDKs, unapproved software running on dev machines
+      </div>
+      <div class="card-footer">
+        <span class="owner-tag">TBD</span>
+        <span class="deep-dive-link link-pending">→ Not Yet Available</span>
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<div class="hub-footer">
+  NFCU  ·  PRODUCT INTEGRITY & TESTING (PIT)  ·  SUPPLY CHAIN HARDENING  ·  CONFIDENTIAL
+</div>
+
+<script>
+let currentFilter = 'all';
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterCards();
+}
+
+function filterCards() {
+  const query = document.getElementById('searchBox').value.toLowerCase();
+  document.querySelectorAll('.entry-card').forEach(card => {
+    const status = card.dataset.status;
+    const text   = card.dataset.text + ' ' + card.innerText.toLowerCase();
+    const matchFilter = currentFilter === 'all' || status === currentFilter;
+    const matchSearch = !query || text.includes(query);
+    card.classList.toggle('hidden', !(matchFilter && matchSearch));
+  });
+}
+</script>
+</body>
+</html>
