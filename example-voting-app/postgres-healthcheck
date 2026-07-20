@@ -14,6 +14,25 @@ args=(
 	--quiet --no-align --tuples-only
 )
 
+To clarify, the authorization control is implemented in the transaction-processing flow before any transaction data is returned to the caller.
+
+When getAccountTransactions is invoked, the request routes through TRANSACTIONS_DTDS_PARALLEL_IGATEWAY_ROUTE, which invokes:
+
+1. ACCOUNTS_DTDS_IGATEWAY_ROUTE to retrieve the account list associated with the currently authenticated customer, based on the customer identity derived from the authenticated session/OAuth context.
+2. TRANSACTIONS_DTDS_IGATEWAY_ROUTE to retrieve the requested transaction information.
+
+Before the transaction response is returned, DtdsTransactionsResponseTransformer.entitlementCheck() verifies that the requested accountNumber, hoganProductCode, and companyNumber exist in the authenticated customer’s account list.
+
+Therefore, the user-controlled account identifier is not trusted by itself to authorize access. It is validated against an independently obtained list of accounts belonging to the authenticated customer. If the requested account does not belong to that customer, the entitlement check fails and no transaction data is returned.
+
+For example, if an attacker replays a valid encrypted account ID belonging to another customer, the account will not exist in the authenticated caller’s ListAccounts response. The entitlement validation will therefore fail and the transaction response will be blocked.
+
+This is what I meant by pushing the authorization check “further down the flow”: the check is performed in DtdsTransactionsResponseTransformer.entitlementCheck() after the authenticated customer’s account list and requested transaction response are aggregated, but before the transaction data is processed and returned to the consumer.
+
+Based on the CWE-639 false-positive criteria, our implementation satisfies the condition that access to the requested object is subject to a server-side authorization/ownership check tied to the authenticated user, rather than relying solely on the user-supplied object identifier.
+
+The original scanner-recommended method names such as isAccountOwnedByCustomer() were illustrative recommendations. Our implementation provides the equivalent authorization enforcement through the ListAccounts entitlement validation described above.
+
 if select="$(echo 'SELECT 1' | psql "${args[@]}")" && [ "$select" = '1' ]; then
 	exit 0
 fi
