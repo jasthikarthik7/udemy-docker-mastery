@@ -28,3 +28,33 @@ node_modules
 
 # Debug log from npm
 npm-debug.log
+
+
+Black Hat 2026 – DAST Vendor Overview
+
+Invicti
+
+* Black Hat Presence: Confirmed at Booth #3267.
+* What they are highlighting: AppSec Core, AI capabilities, DAST/API security, and Proof-Based Scanning for validating exploitable vulnerabilities.
+* Current direction: Expanding beyond traditional DAST into a broader enterprise AppSec platform focused on consolidating security testing, correlation, validation, and risk prioritization.
+* What we are evaluating: Enterprise web and API DAST, authenticated scanning, vulnerability accuracy/false-positive reduction, cloud and self-hosted scanning, internal non-prod coverage, CI/CD integration, reporting, and scalability.
+* Relevance to our PoC: Highly relevant on the DAST side. Proof-Based Scanning, API testing, authentication, and enterprise scanning directly align with our requirements. The broader SAST/SCA/AppSec platform capabilities are interesting but outside the immediate DAST PoC scope.
+* What we should request: A focused demo of their latest DAST/API capabilities, Proof-Based Scanning, authentication, deployment options, and specifically what is new at Black Hat that could benefit our DAST program.
+
+PortSwigger – Burp Suite DAST
+
+* Black Hat Presence: PortSwigger has Black Hat-related activity, but we do not currently have a confirmed booth number.
+* What they are highlighting: Recent focus includes Burp AT, their agentic AI-assisted security testing capability, along with continued enhancements to Burp Suite DAST.
+* Current direction: Building on Burp’s web security/testing strength with increased focus on enterprise DAST, API discovery/testing, modern authentication, and AI-assisted security testing.
+* What we are evaluating: Enterprise web and API DAST, authenticated scanning, API discovery, cloud/self-hosted scanning, internal non-prod coverage, CI/CD integration, vulnerability coverage/accuracy, reporting, and scalability.
+* Specific relevance to us: Recent enhancements such as Apigee API discovery and improved complex authentication support are particularly relevant to our environment.
+* Relevance to our PoC: Directly relevant. Their DAST, API, authentication, and Apigee capabilities align well with what we need to evaluate. Burp AT is more future-looking, but it would be useful to understand how agentic testing could eventually complement our PIT DAST/testing capabilities.
+* What we should request: A focused demo covering enterprise DAST, API/Apigee discovery, complex authentication, deployment architecture, CI/CD integration, and how Burp AT fits into their enterprise DAST roadmap.
+
+Overall
+
+Both vendor discussions would be valuable, but rather than a generic product demo, we should ask them to focus on what they are introducing/showcasing at Black Hat, how those capabilities relate to our current DAST PoC requirements, and what could provide additional value to the PIT program longer term.
+
+This would also give Russ the necessary information and available vendor opportunities to determine whether a discussion with Mike would be beneficial.
+
+
